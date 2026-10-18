@@ -107,3 +107,16 @@ InitTestScene*.unity*
 
 # Auto-generated cache in Assets folder
 /[Aa]ssets/[Ss]ceneDependencyCache*
+
+
+# ===== Proyecto: detector de ojos (Python empaquetado) =====
+# Ejecutable de PyInstaller: pesa cientos de MB (torch_cpu.dll > 100 MB) y GitHub lo rechaza.
+# Cada integrante lo descomprime en Assets/StreamingAssets/ojos_server/ (ver LEEME.txt).
+PDI_Ojos/Assets/StreamingAssets/ojos_server/
+PDI_Ojos/Assets/StreamingAssets/ojos_server.meta
+
+# Python: carpetas de empaquetado y caché (si el código Python vive dentro del repo)
+dist/
+*.spec
+__pycache__/
+*.pyc
