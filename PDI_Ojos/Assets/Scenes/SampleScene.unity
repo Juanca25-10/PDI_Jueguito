@@ -1763,7 +1763,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LanzadorPython
   lanzar: 1
-  verVistaPrevia: 0
+  verVistaPrevia: 1
   puerto: 5005
 --- !u!114 &1742700647
 MonoBehaviour:
