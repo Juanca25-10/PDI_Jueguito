@@ -18,7 +18,22 @@ public class ControlJugador : MonoBehaviour
     public bool puedeCaminar = true;         // false = se queda en su sitio pero puede girar la cabeza
     public bool congelado;                   // true = no camina ni mira (derrota)
 
+    [Header("Sonidos (todos opcionales)")]
+    public AudioSource fuente;               // 2D; si lo dejas vacío se crea uno solo
+    public AudioClip[] pasos;                // se elige uno al azar en cada paso
+    public float metrosPorPaso = 1.7f;
+    public AudioClip salto;
+    public AudioClip aterrizaje;
+    public AudioClip parpadeo;               // el mini sonido al pestañear
+    [Range(0f, 1f)] public float volumenPasos = 0.5f;
+    [Range(0f, 1f)] public float volumenSalto = 0.6f;
+    [Range(0f, 1f)] public float volumenParpadeo = 0.25f;
+
     CharacterController cc;
+    OjosReceiver ojos;
+    float distanciaPaso, caidaMaxima;
+    bool enSueloAntes = true;
+    int ultimoPaso = -1;
     float cabeceo, velocidadY;
     bool encarando;
     Vector3 puntoEncarado;
@@ -31,7 +46,24 @@ public class ControlJugador : MonoBehaviour
         posInicial = transform.position;
         rotInicial = transform.rotation;
         if (camara == null && Camera.main != null) camara = Camera.main.transform;
+        if (fuente == null)
+        {
+            fuente = gameObject.AddComponent<AudioSource>();
+            fuente.playOnAwake = false;
+            fuente.spatialBlend = 0f;
+        }
         BloquearCursor();
+    }
+
+    void OnEnable()
+    {
+        ojos = FindFirstObjectByType<OjosReceiver>();
+        if (ojos != null) ojos.OnParpadeo.AddListener(SonarParpadeo);
+    }
+
+    void OnDisable()
+    {
+        if (ojos != null) ojos.OnParpadeo.RemoveListener(SonarParpadeo);
     }
 
     void Update()
@@ -67,9 +99,48 @@ public class ControlJugador : MonoBehaviour
 
         if (cc.isGrounded && velocidadY < 0f) velocidadY = -2f;
         if (cc.isGrounded && puedeCaminar && !congelado && !encarando && teclado != null && teclado.spaceKey.wasPressedThisFrame)
+        {
             velocidadY = Mathf.Sqrt(alturaSalto * -2f * gravedad);
+            Sonar(salto, volumenSalto);
+        }
         velocidadY += gravedad * Time.deltaTime;
         cc.Move((horizontal + Vector3.up * velocidadY) * Time.deltaTime);
+        ActualizarSonidos();
+    }
+
+    void ActualizarSonidos()
+    {
+        bool enSuelo = cc.isGrounded;
+
+        if (!enSuelo) caidaMaxima = Mathf.Min(caidaMaxima, velocidadY);
+        if (enSuelo && !enSueloAntes)
+        {
+            if (caidaMaxima < -3f) Sonar(aterrizaje, volumenSalto);    // solo si venía cayendo de verdad
+            caidaMaxima = 0f;
+            distanciaPaso = 0f;
+        }
+        enSueloAntes = enSuelo;
+
+        if (!enSuelo || pasos == null || pasos.Length == 0) return;
+        Vector3 v = cc.velocity; v.y = 0f;                              // movimiento real (si choca con una pared, no suena)
+        distanciaPaso += v.magnitude * Time.deltaTime;
+        if (distanciaPaso >= metrosPorPaso)
+        {
+            distanciaPaso = 0f;
+            int i = Random.Range(0, pasos.Length);
+            if (pasos.Length > 1 && i == ultimoPaso) i = (i + 1) % pasos.Length;
+            ultimoPaso = i;
+            Sonar(pasos[i], volumenPasos, 0.06f);
+        }
+    }
+
+    void SonarParpadeo() { Sonar(parpadeo, volumenParpadeo, 0.1f); }
+
+    void Sonar(AudioClip clip, float volumen, float variacionTono = 0.04f)
+    {
+        if (clip == null || fuente == null) return;
+        fuente.pitch = 1f + Random.Range(-variacionTono, variacionTono);
+        fuente.PlayOneShot(clip, volumen);
     }
 
     void GirarHaciaPunto()

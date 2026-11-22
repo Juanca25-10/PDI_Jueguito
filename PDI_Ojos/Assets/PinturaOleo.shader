@@ -1,37 +1,38 @@
-// Cuando nadie mira - Shader de pantalla "Pintura" (URP, Fullscreen Pass Renderer Feature)
-// Mezcla: pinceladas direccionales + paleta c?lida/turquesa + posterizado suave
-//         + l?nea de tinta (linograbado) + trama de lienzo + grano + vi?eta c?lida.
-// Costo: ~8 lecturas de textura por p?xel. No toca materiales de la escena.
+// Cuando nadie mira - Shader "Pintura al oleo" (URP, Fullscreen Pass Renderer Feature)
+// Idea: la imagen se mantiene NITIDA. El look de oleo viene de:
+//  - relieve de pintura gruesa (empaste): alturas procedurales iluminadas con una luz direccional
+//  - suavizado que respeta los bordes (no es blur)
+//  - color vibrante con luces doradas y sombras frias, resplandor calido en las luces
+// Solo ASCII en este archivo (el parser de Unity no acepta tildes ni enie).
 Shader "Cuando Nadie Mira/Pintura"
 {
     Properties
     {
-        [Header(Pincel)]
-        _TamanoPincel("Largo de la pincelada (px)", Range(0, 6)) = 2.5
-        _EscalaPincel("Tamano de las pinceladas", Range(1, 40)) = 14
-        _Distorsion("Ondulacion tipo acuarela (px)", Range(0, 6)) = 1.5
+        [Header(Relieve de pintura)]
+        _Relieve("Fuerza del relieve", Range(0, 1)) = 0.35
+        _EscalaPincel("Tamano de las pinceladas", Range(4, 60)) = 22
+        _Craquelado("Textura fina (grietas de oleo)", Range(0, 1)) = 0.35
+        _EscalaFina("Escala de la textura fina", Range(100, 900)) = 420
+        _LuzAngulo("Direccion de la luz (grados)", Range(0, 360)) = 135
+
+        [Header(Suavizado que respeta bordes)]
+        _Suavizado("Fuerza del suavizado", Range(0, 1)) = 0.5
+        _RadioSuavizado("Radio (px)", Range(0.5, 3)) = 1.5
+        _Nitidez("Proteccion de bordes", Range(5, 120)) = 40
 
         [Header(Color)]
-        _Niveles("Niveles de color", Range(3, 24)) = 9
-        _FuerzaPosterizado("Fuerza del posterizado", Range(0, 1)) = 0.45
-        _Saturacion("Saturacion", Range(0, 2)) = 1.25
-        _Contraste("Contraste", Range(0.5, 1.8)) = 1.1
-        _ColorSombras("Tinte de sombras", Color) = (0.36, 0.50, 0.62, 1)
-        _ColorLuces("Tinte de luces", Color) = (0.66, 0.50, 0.34, 1)
-        _FuerzaTinte("Fuerza del tinte", Range(0, 1)) = 0.6
+        _Saturacion("Vibrancia", Range(0, 1)) = 0.35
+        _Contraste("Contraste", Range(0.7, 1.5)) = 1.06
+        _ColorSombras("Tinte de sombras", Color) = (0.46, 0.48, 0.58, 1)
+        _ColorLuces("Tinte de luces", Color) = (0.60, 0.50, 0.38, 1)
+        _FuerzaTinte("Fuerza del tinte", Range(0, 1)) = 0.3
+        _Resplandor("Resplandor calido en luces", Range(0, 0.5)) = 0.12
+        _ColorResplandor("Color del resplandor", Color) = (1.0, 0.72, 0.35, 1)
 
-        [Header(Tinta)]
-        _ColorTinta("Color de la linea", Color) = (0.12, 0.07, 0.10, 1)
-        _FuerzaLinea("Fuerza de la linea", Range(0, 1)) = 0.5
-
-        [Header(Lienzo)]
-        _Lienzo("Trama de lienzo", Range(0, 1)) = 0.25
-        _EscalaLienzo("Escala de la trama", Range(400, 2400)) = 1500
-        _Grano("Grano", Range(0, 0.3)) = 0.06
-
-        [Header(Vineta)]
-        _ColorVineta("Color de la vineta", Color) = (0.08, 0.03, 0.04, 1)
-        _Vineta("Fuerza de la vineta", Range(0, 1)) = 0.5
+        [Header(Acabado)]
+        _Grano("Grano", Range(0, 0.15)) = 0.025
+        _ColorVineta("Color de la vineta", Color) = (0.10, 0.05, 0.05, 1)
+        _Vineta("Fuerza de la vineta", Range(0, 1)) = 0.25
     }
 
     SubShader
@@ -51,13 +52,13 @@ Shader "Cuando Nadie Mira/Pintura"
             #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
-                float _TamanoPincel, _EscalaPincel, _Distorsion;
-                float _Niveles, _FuerzaPosterizado, _Saturacion, _Contraste;
+                float _Relieve, _EscalaPincel, _Craquelado, _EscalaFina, _LuzAngulo;
+                float _Suavizado, _RadioSuavizado, _Nitidez;
+                float _Saturacion, _Contraste;
                 float4 _ColorSombras, _ColorLuces;
-                float _FuerzaTinte;
-                float4 _ColorTinta;
-                float _FuerzaLinea;
-                float _Lienzo, _EscalaLienzo, _Grano;
+                float _FuerzaTinte, _Resplandor;
+                float4 _ColorResplandor;
+                float _Grano;
                 float4 _ColorVineta;
                 float _Vineta;
             CBUFFER_END
@@ -91,6 +92,21 @@ Shader "Cuando Nadie Mira/Pintura"
                 return dot(c, float3(0.299, 0.587, 0.114));
             }
 
+            // Altura de la pintura: parches (pinceladas) con vetas en su direccion + textura fina
+            float Altura(float2 uvA)
+            {
+                float2 g = uvA * _EscalaPincel;
+                g += (float2(Ruido(g * 0.4), Ruido(g * 0.4 + 9.2)) - 0.5) * 1.6;   // parches irregulares
+                float2 id = floor(g);
+                float2 f = frac(g) - 0.5;
+                float ang = Hash(id) * 3.1416;
+                float2 dir = float2(cos(ang), sin(ang));
+                float2 r = float2(dot(f, dir), dot(f, float2(-dir.y, dir.x)));
+                float veta = Ruido(float2(r.x * 1.5 + Hash(id + 3.7) * 20.0, r.y * 16.0));   // vetas a lo largo del trazo
+                float fino = Ruido(uvA * _EscalaFina);
+                return lerp(veta, fino, _Craquelado * 0.6);
+            }
+
             float4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -100,50 +116,54 @@ Shader "Cuando Nadie Mira/Pintura"
                 float aspecto = _ScreenParams.x / _ScreenParams.y;
                 float2 uvA = uv * float2(aspecto, 1.0);
 
-                // 1) Ondulacion suave (acuarela): mueve el UV con ruido de baja frecuencia
-                float2 onda = float2(Ruido(uvA * 9.0), Ruido(uvA * 9.0 + 17.3)) - 0.5;
-                float2 uvD = uv + onda * _Distorsion * texel * 2.0;
-
-                // 2) Pinceladas: desenfoque de 5 puntos en una direccion que cambia con el ruido
-                float2 p = uvA * _EscalaPincel;
-                float angulo = (Ruido(p) + 0.5 * Ruido(p * 2.3 + 7.1)) * 6.2832;
-                float2 dir = float2(cos(angulo), sin(angulo)) * texel * _TamanoPincel;
-
-                float3 centro = Muestra(uvD);
-                float3 col = centro * 0.33
-                    + (Muestra(uvD + dir) + Muestra(uvD - dir)) * 0.22
-                    + (Muestra(uvD + dir * 2.0) + Muestra(uvD - dir * 2.0)) * 0.115;
-
-                // 3) Paleta: sombras frias (turquesa/azul), luces calidas (ocre/naranja)
+                // 1) Suavizado que respeta bordes (4 puntos): pule la imagen sin borrar contornos
+                float3 c0 = Muestra(uv);
+                float3 acc = c0;
+                float wsum = 1.0;
+                const float2 offs[4] = { float2(1, 1), float2(-1, 1), float2(1, -1), float2(-1, -1) };
+                [unroll]
+                for (int i = 0; i < 4; i++)
+                {
+                    float3 c = Muestra(uv + offs[i] * texel * _RadioSuavizado);
+                    float3 dc = c - c0;
+                    float w = exp(-dot(dc, dc) * _Nitidez);
+                    acc += c * w;
+                    wsum += w;
+                }
+                float3 col = lerp(c0, acc / wsum, _Suavizado);
                 float lum = Luma(col);
-                float3 tinte = lerp(_ColorSombras.rgb, _ColorLuces.rgb, saturate(lum * 1.5));
+
+                // 2) Relieve de empaste: normal a partir de la altura, iluminada por una luz direccional
+                float eps = texel.y * 1.5;
+                float h0 = Altura(uvA);
+                float hx = Altura(uvA + float2(eps, 0));
+                float hy = Altura(uvA + float2(0, eps));
+                float2 grad = clamp(float2(hx - h0, hy - h0) / eps * 0.012, -1.0, 1.0);
+                float3 N = normalize(float3(-grad, 1.0));
+                float rad = radians(_LuzAngulo);
+                float3 L = normalize(float3(cos(rad), sin(rad), 0.8));
+                float sombra = dot(N, L) - L.z;                                   // 0 = plano
+                col *= 1.0 + sombra * _Relieve * (0.6 + lum);
+                col += saturate(sombra) * lum * _Relieve * 0.35 * _ColorResplandor.rgb;   // brillo en las crestas
+
+                // 3) Color: sombras frias, luces doradas, vibrancia (mas en lo apagado)
+                float3 tinte = lerp(_ColorSombras.rgb, _ColorLuces.rgb, smoothstep(0.1, 0.9, lum));
                 col = lerp(col, col * tinte * 2.0, _FuerzaTinte);
 
-                float lum2 = Luma(col);
-                col = lerp(lum2.xxx, col, _Saturacion);
+                float mx = max(col.r, max(col.g, col.b));
+                float mn = min(col.r, min(col.g, col.b));
+                float sat = mx - mn;
+                col = lerp(Luma(col).xxx, col, 1.0 + _Saturacion * (1.0 - sat));
                 col = (col - 0.5) * _Contraste + 0.5;
 
-                // 4) Posterizado suave con ruido para que las bandas parezcan manchas de pintura
-                float rPoster = Ruido(uvA * 60.0);
-                float3 q = floor(col * _Niveles + rPoster) / _Niveles;
-                col = lerp(col, q, _FuerzaPosterizado);
+                // 4) Resplandor calido en las luces (luz dorada de las pinturas)
+                float brillo = saturate((lum - 0.55) * 2.5);
+                col += brillo * brillo * _ColorResplandor.rgb * _Resplandor;
 
-                // 5) Linea de tinta (linograbado): bordes por diferencia de luminosidad
-                float lR = Luma(Muestra(uvD + float2(texel.x * 1.5, 0)));
-                float lU = Luma(Muestra(uvD + float2(0, texel.y * 1.5)));
-                float borde = abs(lum - lR) + abs(lum - lU);
-                borde = smoothstep(0.05, 0.25, borde) * _FuerzaLinea;
-                col = lerp(col, _ColorTinta.rgb, borde);
-
-                // 6) Lienzo: trama fina + grano (el grano cambia ~12 veces por segundo)
-                float2 q2 = uvA * _EscalaLienzo;
-                float trama = (sin(q2.x) + sin(q2.y)) * 0.25;
-                col *= 1.0 + trama * _Lienzo * 0.25;
+                // 5) Grano y vineta
                 float tiempo = floor(_Time.y * 12.0);
-                float grano = Hash(uv * _ScreenParams.xy + tiempo) - 0.5;
-                col += grano * _Grano;
+                col += (Hash(uv * _ScreenParams.xy + tiempo) - 0.5) * _Grano;
 
-                // 7) Vi?eta calida oscura
                 float2 d = uv - 0.5;
                 float v = smoothstep(0.25, 0.85, dot(d, d) * 2.0);
                 col = lerp(col, col * _ColorVineta.rgb * 4.0, v * _Vineta);
