@@ -100,6 +100,9 @@ public class GameManager : MonoBehaviour
 
         ActualizarParpadeoVisual();
 
+        // Los avisos de rostro funcionan al explorar y durante el turno
+        if (fase == Fase.Explorando || fase == Fase.Jugando) hud.AvisoSinRostro(!HayRostro);
+
         switch (fase)
         {
             case Fase.Explorando:
@@ -157,7 +160,6 @@ public class GameManager : MonoBehaviour
     void Jugar(float dt)
     {
         pausadoSinRostro = !HayRostro;
-        hud.AvisoSinRostro(pausadoSinRostro);
         if (pausadoSinRostro) return;                                   // sin rostro: todo se detiene
 
         bool cerrado = CerradosCrudo && SegCerrados >= segCierreMinimo;

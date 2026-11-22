@@ -28,6 +28,8 @@ public class Estatua : MonoBehaviour
     [Header("Identidad")]
     public string nombre = "Estatua";
     [TextArea(3, 8)] public string descripcion;      // la usa InfoEstatua (panel en el mundo antes de empezar)
+    [Tooltip("Imágenes para la pantalla de derrota cuando esta estatua te alcanza. Se elige una al azar.")]
+    public Sprite[] imagenesDerrota;
 
     [Header("Estructura")]
     public Transform modelo;                // lo que se mueve entre poses
@@ -118,8 +120,12 @@ public class Estatua : MonoBehaviour
     {
         PoseActual = Mathf.Clamp(i, 0, PoseFinal);
         if (variantesPorPose != null)
-            for (int k = 0; k < variantesPorPose.Length; k++)
-                if (variantesPorPose[k] != null) variantesPorPose[k].SetActive(k == PoseActual);
+        {
+            // Primero se apagan todas y después se enciende la actual: así funciona aunque un mismo objeto se repita en la lista.
+            foreach (var v in variantesPorPose) if (v != null) v.SetActive(false);
+            if (PoseActual < variantesPorPose.Length && variantesPorPose[PoseActual] != null)
+                variantesPorPose[PoseActual].SetActive(true);
+        }
         Visible.SetPositionAndRotation(poses[PoseActual].position, poses[PoseActual].rotation);
     }
 
@@ -183,5 +189,12 @@ public class Estatua : MonoBehaviour
             if (anterior != null) Gizmos.DrawLine(anterior.position, p.position);
             anterior = p;
         }
+    }
+
+    /// <summary>Una imagen al azar de la lista, o null si no hay ninguna.</summary>
+    public Sprite ImagenDerrotaAleatoria()
+    {
+        if (imagenesDerrota == null || imagenesDerrota.Length == 0) return null;
+        return imagenesDerrota[UnityEngine.Random.Range(0, imagenesDerrota.Length)];
     }
 }

@@ -7,9 +7,13 @@ using UnityEngine;
 /// </summary>
 public class EfectoVela : MonoBehaviour
 {
-    [Header("Luces que parpadean (las luces de la sala)")]
+    [Header("Luces que parpadean (SOLO sirven las Realtime o Mixed; las Baked no cambian en el juego)")]
     public Light[] luces;
-    public float duracionParpadeo = 0.22f;       // segundos que la sala queda casi a oscuras
+
+    [Header("Parpadeo al retroceder una estatua")]
+    public float duracionParpadeo = 0.3f;        // segundos en oscuridad (la estatua cambia de pose en medio)
+    [Range(0f, 1f)] public float intensidadOscura = 0f;   // 0 = apagadas del todo
+    public int titileos = 4;                     // cuántas veces titila al volver la luz
 
     [Header("Amanecer (opcional)")]
     public Light luzAmanecer;                    // p. ej. una luz fuera de la ventana; empieza apagada
@@ -44,10 +48,13 @@ public class EfectoVela : MonoBehaviour
 
     IEnumerator RutinaParpadeo()
     {
-        Escalar(0.05f);
-        yield return new WaitForSeconds(duracionParpadeo);      // la estatua cambia de pose a la mitad (ver Estatua.retrasoCambio)
-        Escalar(0.6f); yield return new WaitForSeconds(0.05f);
-        Escalar(0.15f); yield return new WaitForSeconds(0.05f);
+        Escalar(intensidadOscura);
+        yield return new WaitForSeconds(duracionParpadeo);      // la estatua cambia de pose en medio (ver Estatua.retrasoCambio)
+        for (int i = 0; i < titileos; i++)                      // la luz vuelve titilando, como una vela que se apaga
+        {
+            Escalar(Random.Range(0.1f, 1f));
+            yield return new WaitForSeconds(Random.Range(0.04f, 0.12f));
+        }
         Escalar(1f);
     }
 
