@@ -7,6 +7,8 @@ public class LanzadorPython : MonoBehaviour
     public bool lanzar = true;               // desmárcalo si prefieres correr Python a mano mientras pruebas
     public bool verVistaPrevia = false;      // true = muestra la ventana de la cámara (útil para depurar)
     public int puerto = 5005;                // debe coincidir con OjosReceiver
+    public bool vistaEnJuego = true;         // manda la imagen de la cámara a Unity (para el RawImage con VistaCamara)
+    public int puertoVista = 5006;           // debe coincidir con VistaCamara
 
     System.Diagnostics.Process proceso;
 
@@ -22,9 +24,9 @@ public class LanzadorPython : MonoBehaviour
             return;
         }
 
-        string args = $"--pesos \"{Path.Combine(dir, "mejor_modelo.pth")}\" " +
-                      $"--yunet \"{Path.Combine(dir, "face_detection_yunet_2023mar.onnx")}\" " +
-                      $"--puerto {puerto}" + (verVistaPrevia ? "" : " --sin-vista");
+        string args = $"--puerto {puerto}" +
+                      (verVistaPrevia ? "" : " --sin-vista") +
+                      (vistaEnJuego ? $" --vista-puerto {puertoVista}" : "");
 
         proceso = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
