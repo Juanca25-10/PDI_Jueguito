@@ -93,7 +93,7 @@ LightmapSettings:
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
     m_LightProbeSampleCountMultiplier: 4
-  m_LightingDataAsset: {fileID: 0}
+  m_LightingDataAsset: {fileID: 112000000, guid: 9bdd8db75e589894292ed5d1e9fef06f, type: 2}
   m_LightingSettings: {fileID: 4890085278179872738, guid: bb2d148e8c3e51e4d9d41f7f4b7ae35a, type: 2}
 --- !u!196 &4
 NavMeshSettings:
@@ -1180,7 +1180,7 @@ Transform:
   m_GameObject: {fileID: 341882829}
   serializedVersion: 2
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071068}
-  m_LocalPosition: {x: -261.17322, y: 5.86, z: -12.62883}
+  m_LocalPosition: {x: -261.17322, y: 5.86, z: -12.83}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1658,7 +1658,7 @@ PrefabInstance:
     - target: {fileID: 5606619415449098855, guid: 6cb49eb46089bb24fa56000fc0d4fde9, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: a0fc3f6516a51b1448905e289caa49fd, type: 2}
+      objectReference: {fileID: 2100000, guid: 3c95ed741ba5413418484ffad0d6dabb, type: 2}
     - target: {fileID: 5655053152292649508, guid: 6cb49eb46089bb24fa56000fc0d4fde9, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -2526,12 +2526,12 @@ MonoBehaviour:
   lowestSubdivLevelOverride: 0
   highestSubdivLevelOverride: 7
   overridesSubdivLevels: 0
-  mightNeedRebaking: 1
+  mightNeedRebaking: 0
   cachedTransform:
     e00: 1
     e01: 0
     e02: 0
-    e03: 32.301033
+    e03: 32.301025
     e10: 0
     e11: 1
     e12: 0
@@ -2544,7 +2544,7 @@ MonoBehaviour:
     e31: 0
     e32: 0
     e33: 1
-  cachedHashCode: 2106292738
+  cachedHashCode: 2099856395
   fillEmptySpaces: 0
   version: 2
   globalVolume: 0
@@ -3215,7 +3215,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a83d2f7ae04ab6f4f99b0d85377be998, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.ProbeVolumePerSceneData
-  serializedBakingSet: {fileID: 0}
+  serializedBakingSet: {fileID: 11400000, guid: 7e66d38eb211a3d49855fe8f4c625af6, type: 2}
   sceneGUID: 5ef4e2604dcbd1f42809c8e3e0cf42f2
   obsoleteAsset: {fileID: 0}
   obsoleteCellSharedDataAsset: {fileID: 0}
@@ -3526,7 +3526,7 @@ Transform:
   m_GameObject: {fileID: 683055617}
   serializedVersion: 2
   m_LocalRotation: {x: 0.41362765, y: -0, z: -0, w: 0.9104461}
-  m_LocalPosition: {x: -243.53323, y: 9.88, z: 4.591156}
+  m_LocalPosition: {x: -242.41, y: 9.88, z: 4.591156}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -10712,6 +10712,6 @@ SceneRoots:
   m_Roots:
   - {fileID: 1043873319}
   - {fileID: 2125695085}
+  - {fileID: 1597332429}
   - {fileID: 631460520}
   - {fileID: 698177589}
-  - {fileID: 1597332429}
