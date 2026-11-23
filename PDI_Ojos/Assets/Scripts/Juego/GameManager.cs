@@ -95,6 +95,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
+        if (IntroCinematica.Activa) return;                 // durante la intro todo espera
         float dt = Time.deltaTime;
         if (modoTeclado) tTeclaCerrada = Pulsada(teclaCerrarOjos) ? tTeclaCerrada + dt : 0f;
 

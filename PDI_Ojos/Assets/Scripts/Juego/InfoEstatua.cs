@@ -36,7 +36,7 @@ public class InfoEstatua : MonoBehaviour
     {
         if (canvasInfo == null || jugador == null) return;
 
-        bool explorando = GameManager.Instancia != null && GameManager.Instancia.fase == GameManager.Fase.Explorando;
+        bool explorando = GameManager.Instancia != null && GameManager.Instancia.fase == GameManager.Fase.Explorando && !IntroCinematica.Activa;
         bool cerca = Vector3.Distance(jugador.position, estatua.Posicion) <= radio;
         Mostrar(explorando && cerca);
 
