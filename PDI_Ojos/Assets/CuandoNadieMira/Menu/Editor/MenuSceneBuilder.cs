@@ -20,7 +20,7 @@ namespace CuandoNadieMira.Menu.EditorTools
     {
         const string Root = MenuAssetFactory.Root;
         const string ScenePath = Root + "/Scenes/MainMenu.unity";
-        const int UILayer = 5;
+        internal const int UILayer = 5;
 
         // Paleta (la saturación final la quita el postproceso)
         static readonly Color RimCold = new(0.42f, 0.46f, 0.52f);
@@ -33,8 +33,8 @@ namespace CuandoNadieMira.Menu.EditorTools
         static readonly List<MenuCandle> candles = new();
         static readonly List<GameObject> lowQualityObjects = new();
         static Material matWall, matColumn, matFloor, matDark, matBronze, matWood, matVelvet, matFlame, matPedestal;
-        static TMP_FontAsset fontTitle, fontBody, fontCaps;
-        static Sprite sprFill, sprOutline, sprOrnament, sprPill, sprCircle;
+        internal static TMP_FontAsset fontTitle, fontBody, fontCaps;
+        internal static Sprite sprFill, sprOutline, sprOrnament, sprPill, sprCircle;
         static Material sparkleMat;
 
         [MenuItem("Cuando Nadie Mira/Construir menú principal")]
@@ -59,7 +59,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             sprCircle = MenuTextureFactory.Circle();
             var cursorSprites = (eye: MenuTextureFactory.EyeAlmond(), iris: MenuTextureFactory.Iris());
             var icons = new Dictionary<string, Sprite>();
-            foreach (var n in new[] { "Eye", "EyeClosed", "Gear", "Gamepad", "Book", "Door", "Chevron", "ChevronLeft", "Home", "Frame", "Key" })
+            foreach (var n in new[] { "Eye", "EyeClosed", "Gear", "Gamepad", "Book", "Door", "Chevron", "ChevronLeft", "Home", "Frame", "Key", "Camera" })
                 icons[n] = MenuTextureFactory.Icon(n);
 
             fontTitle = MenuAssetFactory.Font("IMFellEnglish");
@@ -150,6 +150,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             var plate = BuildWorldPlate(ui, rigGo.transform, uiCam, titleMat, icons, emberMat, exhibits, out var frontGroup,
                 out var backGroup, out var mainButtons, out var plateMessage, out var titleLines, out var branches, out var panels);
             var overlay = BuildOverlay(ui, uiCam, icons, out var subtitleLabel);
+            var webcam = BuildWebcamIndicator((RectTransform)overlay, icons["Camera"], WebcamStatusIndicator.Source.SystemDevices);
             var screenOverlay = BuildScreenOverlay(ui, cursorSprites.eye, cursorSprites.iris, sprCircle, out var blackout);
             BuildEventSystem(ui);
 
@@ -160,6 +161,9 @@ namespace CuandoNadieMira.Menu.EditorTools
             transition.Configure(rig, cam, blackout, candles.ToArray(), exhibits[0].FocusPoint);
             flipper.Configure(rig, frontGroup, backGroup, new[] { panels.controls, panels.accessibility, panels.credits, panels.exit });
             controller.Configure(mainButtons, rig, flipper, transition, plateMessage, lowQualityObjects.ToArray());
+            controller.ConfigureWebcam(webcam);
+            // Cada objeto de "Calidad baja" se apaga solo: así funciona también en las escenas que copian este salón
+            foreach (var go in lowQualityObjects) go.AddComponent<LowQualityObject>();
             controller.ConfigurePanels(panels.controls, panels.accessibility, panels.credits, panels.exit, panels.creditsContent,
                 panels.controlsButtons, panels.accessibilityButtons, panels.creditsButtons, panels.exitButtons,
                 panels.homeButtons, panels.accessibilityBack, panels.optionHelp);
@@ -892,7 +896,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return root.transform;
         }
 
-        static MenuButton Button(Transform parent, string label, Sprite icon, Sprite chevron, Vector2 pos, Vector2 size, bool blink,
+        internal static MenuButton Button(Transform parent, string label, Sprite icon, Sprite chevron, Vector2 pos, Vector2 size, bool blink,
             Material emberMat, MuseumExhibit exhibit, float fontSize = 40f)
         {
             var go = new GameObject("Btn_" + label.Split(':')[0].Replace(" ", ""), typeof(RectTransform), typeof(Image));
@@ -1259,6 +1263,31 @@ namespace CuandoNadieMira.Menu.EditorTools
             return rt;
         }
 
+        /// <summary>Indicador "Cámara: conectada / no detectada" en la esquina superior derecha.</summary>
+        internal static WebcamStatusIndicator BuildWebcamIndicator(RectTransform parent, Sprite cameraIcon, WebcamStatusIndicator.Source source)
+        {
+            var box = Img("CameraStatus", parent, sprFill, Vector2.zero, new Vector2(330f, 52f), new Color(0f, 0f, 0f, 0.45f));
+            box.type = Image.Type.Sliced;
+            box.raycastTarget = false;
+            Anchor(box.rectTransform, new Vector2(1f, 1f), new Vector2(1f, 1f), new Vector2(-48f, -88f));   // debajo de las franjas de cine
+            var border = Img("Border", box.rectTransform, sprOutline, new Vector2(0f, 0f), new Vector2(330f, 52f), new Color(1f, 1f, 1f, 0.35f));
+            border.type = Image.Type.Sliced;
+            border.raycastTarget = false;
+            var icon = Img("Icon", box.rectTransform, cameraIcon, new Vector2(14f, 0f), new Vector2(34f, 34f), new Color(1f, 1f, 1f, 0.9f));
+            icon.raycastTarget = false;
+            var dot = Img("Dot", box.rectTransform, sprCircle, new Vector2(60f, 0f), new Vector2(12f, 12f), Color.white);
+            dot.raycastTarget = false;
+            var label = Text("Label", box.rectTransform, fontBody, "Cámara: buscando...", 26f, new Vector2(82f, 0f), new Vector2(240f, 40f));
+            label.color = new Color(0.88f, 0.88f, 0.88f);
+            label.enableAutoSizing = true;   // "Cámara: video de prueba" cabe en una línea
+            label.fontSizeMin = 18f;
+            label.fontSizeMax = 26f;
+            label.textWrappingMode = TextWrappingModes.NoWrap;
+            var ind = box.gameObject.AddComponent<WebcamStatusIndicator>();
+            ind.Configure(source, label, dot);
+            return ind;
+        }
+
         static Transform BuildScreenOverlay(Transform uiRoot, Sprite eye, Sprite iris, Sprite circle, out Image blackout)
         {
             var go = new GameObject("Canvas_Screen", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
@@ -1311,7 +1340,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return rt;
         }
 
-        static void Centered(RectTransform r)
+        internal static void Centered(RectTransform r)
         {
             r.anchorMin = r.anchorMax = new Vector2(0.5f, 0.5f);
             r.pivot = new Vector2(0.5f, 0.5f);
@@ -1331,7 +1360,7 @@ namespace CuandoNadieMira.Menu.EditorTools
         // Utilidades
         // ============================================================================
 
-        static Transform Child(string name, Transform parent)
+        internal static Transform Child(string name, Transform parent)
         {
             var t = new GameObject(name).transform;
             t.SetParent(parent, false);
@@ -1413,7 +1442,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return b;
         }
 
-        static CanvasGroup Group(string name, RectTransform parent)
+        internal static CanvasGroup Group(string name, RectTransform parent)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasGroup));
             go.layer = UILayer;
@@ -1426,7 +1455,7 @@ namespace CuandoNadieMira.Menu.EditorTools
         }
 
         // Ancla al centro del padre y pivote a la izquierda: pos.x es el borde izquierdo
-        static void Place(RectTransform rt, Vector2 pos, Vector2 size)
+        internal static void Place(RectTransform rt, Vector2 pos, Vector2 size)
         {
             rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0f, 0.5f);
@@ -1439,14 +1468,14 @@ namespace CuandoNadieMira.Menu.EditorTools
             rt.anchoredPosition = pos;
         }
 
-        static void Anchor(RectTransform rt, Vector2 anchor, Vector2 pivot, Vector2 pos)
+        internal static void Anchor(RectTransform rt, Vector2 anchor, Vector2 pivot, Vector2 pos)
         {
             rt.anchorMin = rt.anchorMax = anchor;
             rt.pivot = pivot;
             rt.anchoredPosition = pos;
         }
 
-        static TMP_Text Text(string name, Transform parent, TMP_FontAsset font, string text, float size, Vector2 pos, Vector2 box)
+        internal static TMP_Text Text(string name, Transform parent, TMP_FontAsset font, string text, float size, Vector2 pos, Vector2 box)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.layer = UILayer;
@@ -1464,7 +1493,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return t;
         }
 
-        static Image Img(string name, Transform parent, Sprite sprite, Vector2 pos, Vector2 size, Color color)
+        internal static Image Img(string name, Transform parent, Sprite sprite, Vector2 pos, Vector2 size, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.layer = UILayer;
@@ -1477,7 +1506,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return img;
         }
 
-        static void SetField(Object target, string field, object value)
+        internal static void SetField(Object target, string field, object value)
         {
             var so = new SerializedObject(target);
             var prop = so.FindProperty(field);
@@ -1493,7 +1522,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
-        static void AddToBuildSettings(string path)
+        internal static void AddToBuildSettings(string path)
         {
             var scenes = EditorBuildSettings.scenes.ToList();
             if (scenes.Any(s => s.path == path)) return;

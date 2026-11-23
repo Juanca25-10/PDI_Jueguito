@@ -128,6 +128,39 @@ namespace CuandoNadieMira.Menu.EditorTools
         public static Sprite Pill() => SaveSprite("UI_Pill", 64, 32, (u, v) =>
             new Color(1f, 1f, 1f, RoundRect(u * 64f, v * 32f, 64f, 32f, 14f, fill: true)), 15);
 
+        // Anillo fino (número de paso, indicadores redondos)
+        public static Sprite Ring() => SaveSprite("UI_Ring", 64, 64, (u, v) =>
+        {
+            float r = Vector2.Distance(new Vector2(u, v), new Vector2(0.5f, 0.5f)) * 64f;
+            return new Color(1f, 1f, 1f, 1f - SS(0.8f, 1.8f, Mathf.Abs(r - 29f)));
+        }, 0);
+
+        // Guía punteada de cabeza y hombros para el marco de la cámara en Calibración
+        public static Sprite HeadGuide() => SaveSprite("UI_HeadGuide", 256, 320, (u, v) =>
+        {
+            float x = u * 256f, y = v * 320f;
+            // Cabeza: elipse
+            Vector2 q = new((x - 128f) / 64f, (y - 196f) / 82f);
+            float headD = Mathf.Abs(q.magnitude - 1f) * 70f;
+            float headA = Mathf.Atan2(q.y, q.x) / (2f * Mathf.PI);
+            float headDash = Mathf.Repeat(headA * 46f, 1f) < 0.55f ? 1f : 0f;
+            // Hombros: arco amplio bajo la cabeza, con hueco para el cuello
+            Vector2 sc = new(128f, -96f);
+            float sr = Vector2.Distance(new Vector2(x, y), sc);
+            float shD = Mathf.Abs(sr - 190f);
+            float shA = Mathf.Atan2(y - sc.y, x - sc.x) * Mathf.Rad2Deg;
+            bool shoulderRange = shA > 22f && shA < 158f && Mathf.Abs(x - 128f) > 40f;
+            float shDash = Mathf.Repeat(shA / 3.2f, 1f) < 0.55f ? 1f : 0f;
+            // Cuello: dos trazos cortos
+            float neck = Mathf.Min(Seg(new Vector2(x, y), new Vector2(98f, 122f), new Vector2(90f, 86f)),
+                                   Seg(new Vector2(x, y), new Vector2(158f, 122f), new Vector2(166f, 86f)));
+            float neckDash = Mathf.Repeat(y / 9f, 1f) < 0.55f ? 1f : 0f;
+
+            float a = Mathf.Max((1f - SS(1.2f, 2.6f, headD)) * headDash,
+                      Mathf.Max(shoulderRange ? (1f - SS(1.2f, 2.6f, shD)) * shDash : 0f, (1f - SS(1.2f, 2.6f, neck)) * neckDash));
+            return new Color(1f, 1f, 1f, a);
+        }, 0);
+
         public static Sprite Icon(string name) => SaveSprite("Icon_" + name, 128, 128, (u, v) =>
         {
             float d = IconDistance(name, new Vector2(u, v) * 128f);
@@ -224,6 +257,85 @@ namespace CuandoNadieMira.Menu.EditorTools
                 }
                 case "Key":
                     return Mathf.Abs(RoundRectDist(p, new Vector2(64, 64), new Vector2(40, 28), 8f));
+
+                // --- Iconos de Calibración, Preparando la experiencia y Seguimiento perdido ---
+                case "Camera":
+                {
+                    float body = Mathf.Abs(RoundRectDist(p, new Vector2(52, 64), new Vector2(34, 24), 7f));
+                    float lens = Mathf.Min(Seg(p, new Vector2(90, 64), new Vector2(112, 82)),
+                        Mathf.Min(Seg(p, new Vector2(112, 82), new Vector2(112, 46)), Seg(p, new Vector2(112, 46), new Vector2(90, 64))));
+                    return Mathf.Min(body, lens);
+                }
+                case "Chair":
+                {
+                    float head = Mathf.Abs(Vector2.Distance(p, new Vector2(74, 102)) - 10f);
+                    float torso = Seg(p, new Vector2(72, 88), new Vector2(64, 60));
+                    float legs = Mathf.Min(Seg(p, new Vector2(64, 60), new Vector2(94, 60)), Seg(p, new Vector2(94, 60), new Vector2(96, 28)));
+                    float chair = Mathf.Min(Seg(p, new Vector2(40, 98), new Vector2(44, 48)),
+                        Mathf.Min(Seg(p, new Vector2(44, 48), new Vector2(92, 48)), Mathf.Min(Seg(p, new Vector2(46, 48), new Vector2(42, 22)), Seg(p, new Vector2(88, 48), new Vector2(90, 22)))));
+                    return Mathf.Min(Mathf.Min(head, torso), Mathf.Min(legs, chair));
+                }
+                case "Head":
+                {
+                    float head = Mathf.Abs(Vector2.Distance(p, new Vector2(64, 80)) - 24f);
+                    float shoulders = Arc(p, new Vector2(64, 6), 50, 35, 145);
+                    return Mathf.Min(head, shoulders);
+                }
+                case "Person":
+                {
+                    float head = Mathf.Abs(Vector2.Distance(p, new Vector2(64, 88)) - 16f);
+                    float body = Arc(p, new Vector2(64, 22), 40, 20, 160);
+                    return Mathf.Min(head, body);
+                }
+                case "Play":
+                    return Mathf.Min(Seg(p, new Vector2(46, 34), new Vector2(46, 94)),
+                        Mathf.Min(Seg(p, new Vector2(46, 94), new Vector2(96, 64)), Seg(p, new Vector2(96, 64), new Vector2(46, 34))));
+                case "Retry":
+                {
+                    Vector2 c = new(64, 64);
+                    float arc = Arc(p, c, 34, 60, 340);
+                    Vector2 tip = c + Polar(34, 60);
+                    float head = Mathf.Min(Seg(p, tip, tip + new Vector2(-2, -20)), Seg(p, tip, tip + new Vector2(-19, 5)));
+                    return Mathf.Min(arc, head);
+                }
+                case "Warning":
+                {
+                    float tri = Mathf.Min(Seg(p, new Vector2(64, 110), new Vector2(16, 24)),
+                        Mathf.Min(Seg(p, new Vector2(16, 24), new Vector2(112, 24)), Seg(p, new Vector2(112, 24), new Vector2(64, 110))));
+                    float bar = Seg(p, new Vector2(64, 84), new Vector2(64, 54));
+                    float dot = Mathf.Max(0f, Vector2.Distance(p, new Vector2(64, 40)) - 2.5f);
+                    return Mathf.Min(tri, Mathf.Min(bar, dot));
+                }
+                case "Signal":
+                {
+                    float d = 999f;
+                    for (int i = 0; i < 4; i++) d = Mathf.Min(d, Seg(p, new Vector2(34 + i * 20, 28), new Vector2(34 + i * 20, 46 + i * 18)));
+                    return d;
+                }
+                case "Check":
+                    return Mathf.Min(Seg(p, new Vector2(30, 66), new Vector2(54, 42)), Seg(p, new Vector2(54, 42), new Vector2(100, 90)));
+                case "Cross":
+                    return Mathf.Min(Seg(p, new Vector2(38, 38), new Vector2(90, 90)), Seg(p, new Vector2(38, 90), new Vector2(90, 38)));
+                case "Move":
+                {
+                    Vector2 c = new(64, 64);
+                    float d = Mathf.Abs(Vector2.Distance(p, c) - 10f);
+                    for (int i = 0; i < 4; i++)
+                    {
+                        float a = i * 90f;
+                        Vector2 tip = c + Polar(46, a), l = c + Polar(34, a + 14f), r = c + Polar(34, a - 14f);
+                        d = Mathf.Min(d, Mathf.Min(Seg(p, tip, l), Seg(p, tip, r)));
+                        d = Mathf.Min(d, Seg(p, c + Polar(20, a), tip));
+                    }
+                    return d;
+                }
+                case "Sun":
+                {
+                    Vector2 c = new(64, 64);
+                    float d = Mathf.Abs(Vector2.Distance(p, c) - 16f);
+                    for (int i = 0; i < 8; i++) d = Mathf.Min(d, Seg(p, c + Polar(28, i * 45f), c + Polar(42, i * 45f)));
+                    return d;
+                }
                 default:
                     return 999f;
             }

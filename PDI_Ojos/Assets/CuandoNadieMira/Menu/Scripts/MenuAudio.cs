@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace CuandoNadieMira.Menu
 {
-    public enum MenuSound { Hover, Select, Tick, Swish, Heartbeat, Thunder, Drip, Hum, Breath, PageTurn, Snuff }
+    public enum MenuSound { Hover, Select, Tick, Swish, Heartbeat, Thunder, Drip, Hum, Breath, PageTurn, Snuff, Bell }
 
     /// <summary>
     /// Efectos del menú generados por código (sin archivos externos) y subtítulos de sonidos.
@@ -28,6 +28,7 @@ namespace CuandoNadieMira.Menu
             { MenuSound.Thunder, "[trueno lejano]" },
             { MenuSound.PageTurn, "[una página pasa sola]" },
             { MenuSound.Snuff, "[una vela se apaga]" },
+            { MenuSound.Bell, "[campana]" },
         };
 
         void Awake()
@@ -108,6 +109,8 @@ namespace CuandoNadieMira.Menu
                     case MenuSound.Hum: return Make("hum", 3f, (t, n) => (Mathf.Sin(2 * Mathf.PI * 55f * t) + 0.4f * Mathf.Sin(2 * Mathf.PI * 82.4f * t)) * Mathf.Sin(Mathf.PI * t / 3f) * 0.15f);
                     case MenuSound.Breath: return Make("breath", 2.4f, (t, n) => Low(n, 0.05f) * Mathf.Sin(Mathf.PI * t / 2.4f) * 0.35f);
                     case MenuSound.PageTurn: return Make("page", 0.5f, (t, n) => Low(n, 0.15f) * Env(t, 0.5f, 0.06f, 0.35f) * 0.18f);
+                    // Campana de calibración: clara y larga, para oírla con los ojos cerrados
+                    case MenuSound.Bell: return Make("bell", 2.6f, (t, n) => (SoftBell(t, 587.33f, 1.6f) + SoftBell(t, 880f, 2.2f) * 0.35f + SoftBell(t, 1174.7f, 3f) * 0.15f) * 0.32f);
                     default: return Make("snuff", 0.3f, (t, n) => Low(n, 0.1f) * Env(t, 0.3f, 0.01f, 0.25f) * 0.2f);
                 }
             }

@@ -47,6 +47,21 @@ public class OjosReceiver : MonoBehaviour
     float ultimoPaquete = -999f, tCierre;
     bool cierreLargoDisparado, primero = true;
 
+    [Header("Calibración del menú")]
+    [Tooltip("Usa los umbrales personales que guarda la pantalla de Calibración (si existen).")]
+    public bool usarCalibracion = true;
+
+    void Awake()
+    {
+        // Mismas claves que CuandoNadieMira.Menu.CalibrationStore
+        if (usarCalibracion && PlayerPrefs.GetInt("cnm.calib.ok", 0) == 1)
+        {
+            umbralCierre = PlayerPrefs.GetFloat("cnm.calib.umbralCierre", umbralCierre);
+            umbralApertura = Mathf.Min(PlayerPrefs.GetFloat("cnm.calib.umbralApertura", umbralApertura), umbralCierre - 0.02f);
+            Debug.Log($"[OjosReceiver] Calibración aplicada: cierre {umbralCierre:F2}, apertura {umbralApertura:F2}");
+        }
+    }
+
     void OnEnable()
     {
         cliente = new UdpClient(new IPEndPoint(IPAddress.Loopback, puerto));
@@ -86,8 +101,10 @@ public class OjosReceiver : MonoBehaviour
         if (msg != null)
         {
             ultimoPaquete = ahora;
-            var d = JsonUtility.FromJson<Paquete>(msg);
-            if (d.cara) { EstablecerRostro(true); Procesar(d.p, ahora); }
+            Paquete d = null;
+            try { d = JsonUtility.FromJson<Paquete>(msg); } catch (ArgumentException) { }
+            if (d == null) { /* paquete que no es JSON: se ignora */ }
+            else if (d.cara) { EstablecerRostro(true); Procesar(d.p, ahora); }
             else EstablecerRostro(false);
         }
         else if (HayRostro && ahora - ultimoPaquete > timeoutSinDatos)

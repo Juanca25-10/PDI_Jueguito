@@ -19,6 +19,9 @@ namespace CuandoNadieMira.Menu
         [Header("Escenas de destino")]
         [SerializeField] string startScene = "Calibracion";
         [SerializeField] string calibrationScene = "Calibracion";
+        [Tooltip("Si ya hay una calibración guardada, \"Iniciar experiencia\" salta directo a esta escena.")]
+        [SerializeField] string loadingScene = "Carga";
+        [SerializeField] WebcamStatusIndicator webcam;     // indicador real de cámara (esquina superior derecha)
 
         [Header("Botones principales (orden de foco)")]
         [SerializeField] MenuButton[] mainButtons;   // Iniciar, Calibración, Controles, Créditos, Salir
@@ -59,6 +62,8 @@ namespace CuandoNadieMira.Menu
             mainButtons = main; rig = cameraRig; flipper = panelFlipper; transition = sceneTransition;
             plateMessage = message; lowQualityDisabled = lowQualityObjects;
         }
+
+        public void ConfigureWebcam(WebcamStatusIndicator indicator) => webcam = indicator;
 
         public void ConfigurePanels(GameObject controls, GameObject accessibility, GameObject credits, GameObject exit,
             RectTransform creditsScroll, MenuButton[] controlsBtns, MenuButton[] accessibilityBtns, MenuButton[] creditsBtns, MenuButton[] exitBtns,
@@ -187,8 +192,12 @@ namespace CuandoNadieMira.Menu
 
         void WireActions()
         {
-            mainButtons[0].onActivate.AddListener(() => StartCoroutine(GoToScene(startScene, false)));
-            mainButtons[1].onActivate.AddListener(() => StartCoroutine(GoToScene(calibrationScene, true)));
+            mainButtons[0].onActivate.AddListener(StartExperience);
+            mainButtons[1].onActivate.AddListener(() =>
+            {
+                MenuFlow.Intent = FlowIntent.CalibrateOnly;
+                StartCoroutine(GoToScene(calibrationScene, true));
+            });
             mainButtons[2].onActivate.AddListener(() => StartCoroutine(OpenPanel(controlsPanel, mainButtons[2])));
             mainButtons[3].onActivate.AddListener(() => StartCoroutine(OpenPanel(creditsPanel, mainButtons[3])));
             mainButtons[4].onActivate.AddListener(() => StartCoroutine(OpenPanel(exitPanel, mainButtons[4])));
@@ -228,6 +237,23 @@ namespace CuandoNadieMira.Menu
         }
 
         static float B(bool v) => v ? 1f : 0f;
+
+        /// <summary>
+        /// "Iniciar experiencia": sin cámara avisa en la placa y ofrece Calibración (que explica qué falta);
+        /// con cámara va a Calibración, o directo a "Preparando la experiencia" si ya hay una calibración guardada.
+        /// </summary>
+        void StartExperience()
+        {
+            if (webcam != null && !webcam.Connected)
+            {
+                ShowMessage("Necesitamos ver tus ojos. Conecta una cámara o revisa los permisos.\nPuedes revisarlo en Calibración.");
+                MenuAudio.Instance?.Play(MenuSound.Snuff, 0.8f);
+                Focus(mainButtons[1]);
+                return;
+            }
+            MenuFlow.Intent = FlowIntent.Play;
+            StartCoroutine(GoToScene(CalibrationStore.IsCalibrated ? loadingScene : startScene, false));
+        }
 
         void UpdateHelp(MenuButton b)
         {

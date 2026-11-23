@@ -81,7 +81,14 @@ namespace CuandoNadieMira.Menu
             while (!op.isDone) yield return null;
         }
 
-        static AsyncOperation LoadAsync(string sceneName)
+        /// <summary>Fundido a negro sin cambiar de escena (lo usa "Preparando la experiencia" antes de activar el juego).</summary>
+        public IEnumerator FadeOut(float time)
+        {
+            yield return Fade(blackout != null ? blackout.color.a : 0f, 1f, time);
+        }
+
+        /// <summary>Carga asíncrona; devuelve null si la escena no existe. En el editor no hace falta que esté en Build Settings.</summary>
+        public static AsyncOperation LoadAsync(string sceneName)
         {
             if (Application.CanStreamedLevelBeLoaded(sceneName)) return SceneManager.LoadSceneAsync(sceneName);
 #if UNITY_EDITOR

@@ -26,7 +26,9 @@ public class LanzadorPython : MonoBehaviour
 
         string args = $"--puerto {puerto}" +
                       (verVistaPrevia ? "" : " --sin-vista") +
-                      (vistaEnJuego ? $" --vista-puerto {puertoVista}" : "");
+                      (vistaEnJuego ? $" --vista-puerto {puertoVista}" : "") +
+                      // Cámara elegida en la pantalla de Calibración (si hay más de una)
+                      (PlayerPrefs.HasKey("cnm.camara") ? $" --camara {PlayerPrefs.GetInt("cnm.camara")}" : "");
 
         proceso = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
         {
