@@ -20,11 +20,12 @@ public class PulsoPantalla : MonoBehaviour
 
     float tiempo = -1f;                                 // -1 = en reposo
     Vector3 posicionBase;
+    ControlJugador jugador;                             // si existe, el temblor pasa por él (convive con el bamboleo)
 
     void Awake()
     {
         if (camara == null && Camera.main != null) camara = Camera.main.transform;
-        if (camara != null) posicionBase = camara.localPosition;
+        if (camara != null) { posicionBase = camara.localPosition; jugador = camara.GetComponentInParent<ControlJugador>(); }
         Aplicar(0f);
     }
 
@@ -50,6 +51,8 @@ public class PulsoPantalla : MonoBehaviour
     void Aplicar(float valor)
     {
         if (vineta != null) vineta.canvasRenderer.SetAlpha(valor * intensidad);
-        if (camara != null) camara.localPosition = posicionBase + Random.insideUnitSphere * (fuerzaTemblor * valor);
+        Vector3 temblor = Random.insideUnitSphere * (fuerzaTemblor * valor);
+        if (jugador != null) jugador.sacudida = temblor;
+        else if (camara != null) camara.localPosition = posicionBase + temblor;
     }
 }

@@ -18,6 +18,15 @@ public class ControlJugador : MonoBehaviour
     public bool puedeCaminar = true;         // false = se queda en su sitio pero puede girar la cabeza
     public bool congelado;                   // true = no camina ni mira (derrota)
 
+    [Header("Sensación de cámara")]
+    public bool movimientoCamara = true;
+    public float alturaBob = 0.045f;         // sube y baja al caminar (metros)
+    public float lateralBob = 0.025f;        // balanceo de lado a lado (metros)
+    public float rolLateral = 1.8f;          // grados que se inclina al moverse de lado
+    public float respiracion = 0.004f;       // vaivén lento cuando está quieto (metros)
+    public float fovCorrer = 6f;             // grados extra de campo de visión al correr
+    [HideInInspector] public Vector3 sacudida;   // lo usa PulsoPantalla para el temblor
+
     [Header("Sonidos (todos opcionales)")]
     public AudioSource fuente;               // 2D; si lo dejas vacío se crea uno solo
     public AudioClip[] pasos;                // se elige uno al azar en cada paso
@@ -30,6 +39,9 @@ public class ControlJugador : MonoBehaviour
     [Range(0f, 1f)] public float volumenParpadeo = 0.25f;
 
     CharacterController cc;
+    Camera camaraComp;
+    Vector3 posCamaraBase;
+    float fovBase, amplitudBob, cicloBob, roll, hundimiento, entradaLateral;
     OjosReceiver ojos;
     float distanciaPaso, caidaMaxima;
     bool enSueloAntes = true;
@@ -46,6 +58,9 @@ public class ControlJugador : MonoBehaviour
         posInicial = transform.position;
         rotInicial = transform.rotation;
         if (camara == null && Camera.main != null) camara = Camera.main.transform;
+        posCamaraBase = camara.localPosition;
+        camaraComp = camara.GetComponent<Camera>();
+        if (camaraComp != null) fovBase = camaraComp.fieldOfView;
         if (fuente == null)
         {
             fuente = gameObject.AddComponent<AudioSource>();
@@ -74,6 +89,7 @@ public class ControlJugador : MonoBehaviour
         else if (!congelado) Mirar();
 
         Mover();
+        ActualizarCamara();
     }
 
     void Mirar()
@@ -82,17 +98,19 @@ public class ControlJugador : MonoBehaviour
         Vector2 delta = Mouse.current.delta.ReadValue() * sensibilidad;
         transform.Rotate(0f, delta.x, 0f);
         cabeceo = Mathf.Clamp(cabeceo - delta.y, -limiteVertical, limiteVertical);
-        camara.localRotation = Quaternion.Euler(cabeceo, 0f, 0f);
+        AplicarRotacion();
     }
 
     void Mover()
     {
         Vector3 horizontal = Vector3.zero;
+        entradaLateral = 0f;
         var teclado = Keyboard.current;
         if (puedeCaminar && !congelado && !encarando && teclado != null)
         {
             float x = (teclado.dKey.isPressed ? 1f : 0f) - (teclado.aKey.isPressed ? 1f : 0f);
             float z = (teclado.wKey.isPressed ? 1f : 0f) - (teclado.sKey.isPressed ? 1f : 0f);
+            entradaLateral = x;
             float rapidez = teclado.leftShiftKey.isPressed ? velocidadCorrer : velocidad;
             horizontal = Vector3.ClampMagnitude(transform.right * x + transform.forward * z, 1f) * rapidez;
         }
@@ -115,7 +133,11 @@ public class ControlJugador : MonoBehaviour
         if (!enSuelo) caidaMaxima = Mathf.Min(caidaMaxima, velocidadY);
         if (enSuelo && !enSueloAntes)
         {
-            if (caidaMaxima < -3f) Sonar(aterrizaje, volumenSalto);    // solo si venía cayendo de verdad
+            if (caidaMaxima < -3f)                                     // solo si venía cayendo de verdad
+            {
+                Sonar(aterrizaje, volumenSalto);
+                hundimiento = Mathf.Clamp(-caidaMaxima * 0.012f, 0f, 0.12f);   // la cámara se hunde un poco
+            }
             caidaMaxima = 0f;
             distanciaPaso = 0f;
         }
@@ -143,6 +165,45 @@ public class ControlJugador : MonoBehaviour
         fuente.PlayOneShot(clip, volumen);
     }
 
+    void AplicarRotacion()
+    {
+        camara.localRotation = Quaternion.Euler(cabeceo + hundimiento * 20f, 0f, roll);
+    }
+
+    void ActualizarCamara()
+    {
+        float dt = Time.deltaTime;
+        Vector3 v = cc.velocity; v.y = 0f;
+        float rapidez = v.magnitude;
+        bool corriendo = rapidez > velocidad * 1.2f;
+
+        float objetivoAmp = (movimientoCamara && cc.isGrounded)
+            ? Mathf.Clamp01(rapidez / velocidad) * (corriendo ? 1.5f : 1f) : 0f;
+        amplitudBob = Mathf.MoveTowards(amplitudBob, objetivoAmp, 6f * dt);
+        cicloBob += rapidez * dt / (metrosPorPaso * 2f);          // un vaivén por paso, igual que el sonido
+        float quieto = 1f - Mathf.Clamp01(amplitudBob);
+
+        float y = Mathf.Sin(cicloBob * 4f * Mathf.PI) * alturaBob * amplitudBob
+                + Mathf.Sin(Time.time * 1.4f) * respiracion * quieto * (movimientoCamara ? 1f : 0f)
+                - hundimiento;
+        float x = Mathf.Sin(cicloBob * 2f * Mathf.PI) * lateralBob * amplitudBob;
+        camara.localPosition = posCamaraBase + new Vector3(x, y, 0f) + sacudida;
+
+        float rolObjetivo = movimientoCamara
+            ? -entradaLateral * rolLateral * (cc.isGrounded ? 1f : 0.5f)
+              + Mathf.Sin(cicloBob * 2f * Mathf.PI) * 0.4f * amplitudBob
+            : 0f;
+        roll = Mathf.Lerp(roll, rolObjetivo, 1f - Mathf.Exp(-8f * dt));
+        hundimiento = Mathf.Lerp(hundimiento, 0f, 1f - Mathf.Exp(-9f * dt));
+        AplicarRotacion();
+
+        if (camaraComp != null)
+        {
+            float fovObjetivo = fovBase + ((movimientoCamara && corriendo && amplitudBob > 0.5f) ? fovCorrer : 0f);
+            camaraComp.fieldOfView = Mathf.Lerp(camaraComp.fieldOfView, fovObjetivo, 1f - Mathf.Exp(-6f * dt));
+        }
+    }
+
     void GirarHaciaPunto()
     {
         Vector3 dir = puntoEncarado - camara.position;
@@ -151,7 +212,7 @@ public class ControlJugador : MonoBehaviour
             transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(plano), 6f * Time.deltaTime);
         float objetivo = -Mathf.Atan2(dir.y, plano.magnitude) * Mathf.Rad2Deg;
         cabeceo = Mathf.Lerp(cabeceo, objetivo, 6f * Time.deltaTime);
-        camara.localRotation = Quaternion.Euler(cabeceo, 0f, 0f);
+        AplicarRotacion();
     }
 
     static void BloquearCursor()
@@ -186,6 +247,7 @@ public class ControlJugador : MonoBehaviour
         cc.enabled = true;
         velocidadY = 0f;
         cabeceo = 0f;
-        camara.localRotation = Quaternion.identity;
+        roll = 0f;
+        AplicarRotacion();
     }
 }
