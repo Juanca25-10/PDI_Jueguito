@@ -1237,7 +1237,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             var rt = (RectTransform)go.transform;
 
             var tagline = Text("Tagline", rt, fontBody, "Usa tu mirada para detener lo que se mueve en la oscuridad.", 27f, Vector2.zero, new Vector2(900f, 40f));
@@ -1299,7 +1299,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             var rt = (RectTransform)go.transform;
 
             blackout = new GameObject("Blackout", typeof(RectTransform), typeof(Image)).GetComponent<Image>();

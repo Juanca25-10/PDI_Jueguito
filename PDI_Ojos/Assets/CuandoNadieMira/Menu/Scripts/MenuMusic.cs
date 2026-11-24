@@ -79,8 +79,10 @@ namespace CuandoNadieMira.Menu
             // Notas de la caja de música (re menor, registro agudo)
             static readonly double[] Bells = { 587.33, 698.46, 783.99, 880.00, 1046.50, 1174.66, 466.16, 659.25 };
 
-            const double ChordSeconds = 12.0;
-            const double CrossfadeSeconds = 3.5;
+            const double ChordSeconds = 18.0;   // acordes más largos: música más lenta
+            const double CrossfadeSeconds = 5.5;
+            const double Slow = 0.65;           // ritmo de los vaivenes (temblor, respiración, viento)
+            const double BeatSeconds = 1.45;    // latido lento (~41 por minuto)
 
             readonly int rate;
             readonly System.Random rng;
@@ -116,9 +118,9 @@ namespace CuandoNadieMira.Menu
                 for (int i = 0; i + 1 < data.Length; i += 2)
                 {
                     double t = (double)n / rate;
-                    float mono = Drone(t) + Pad(t) + Wind();
+                    float mono = Drone(t) + Heart(t);   // solo zumbido grave y latidos lentos (sin acordes, viento ni campanas)
                     float bl = 0f, br = 0f;
-                    Bell(ref bl, ref br);
+                    // Bell(ref bl, ref br);   // campanas desactivadas
 
                     // Eco: las campanas se repiten a izquierda y derecha, cada vez más apagadas
                     float dl = delayL[delayPos % delayL.Length];
@@ -139,7 +141,7 @@ namespace CuandoNadieMira.Menu
 
             float Drone(double t)
             {
-                double trem = 0.75 + 0.25 * Math.Sin(TwoPi * 0.07 * t);
+                double trem = 0.75 + 0.25 * Math.Sin(TwoPi * 0.07 * Slow * t);
                 double v = Math.Sin(TwoPi * 73.42 * t) * 0.16 + Math.Sin(TwoPi * 36.71 * t) * 0.1
                            + Math.Sin(TwoPi * 110.0 * t + Math.Sin(TwoPi * 0.05 * t)) * 0.04;
                 return (float)(v * trem);
@@ -153,7 +155,7 @@ namespace CuandoNadieMira.Menu
                 w = w * w * (3 - 2 * w);
                 double cur = ChordTone(Chords[idx % Chords.Length], t);
                 double prev = idx > 0 ? ChordTone(Chords[(idx - 1) % Chords.Length], t) : 0.0;
-                double breath = 0.7 + 0.3 * Math.Sin(TwoPi * 0.11 * t + 1.3);
+                double breath = 0.7 + 0.3 * Math.Sin(TwoPi * 0.11 * Slow * t + 1.3);
                 float raw = (float)((cur * w + prev * (1 - w)) * breath * 0.07);
                 padLp += (raw - padLp) * 0.08f;   // suaviza el timbre
                 return padLp;
@@ -171,12 +173,28 @@ namespace CuandoNadieMira.Menu
                 return v;
             }
 
+            // Latido suave: dos golpes graves (lub-dub) con un silencio largo
+            float Heart(double t)
+            {
+                double ph = t % BeatSeconds;
+                return (float)(Thump(ph, 0.0, 1.0) + Thump(ph, 0.32, 0.6)) * 0.11f;
+            }
+
+            static double Thump(double ph, double at, double gain)
+            {
+                double dt = ph - at;
+                if (dt < 0 || dt > 0.4) return 0;
+                double env = Math.Min(1.0, dt * 60) * Math.Exp(-dt * 14);
+                double f = 46 + 20 * Math.Exp(-dt * 25);   // cae de tono como un golpe sordo
+                return Math.Sin(TwoPi * f * dt) * env * gain;
+            }
+
             float Wind()
             {
                 float noise = (float)(rng.NextDouble() * 2 - 1);
                 windLp += (noise - windLp) * 0.012f;
                 windLp2 += (windLp - windLp2) * 0.02f;
-                double swell = 0.5 + 0.5 * Math.Sin(TwoPi * 0.031 * n / rate);
+                double swell = 0.5 + 0.5 * Math.Sin(TwoPi * 0.031 * Slow * n / rate);
                 return windLp2 * (float)(0.5 + swell) * 0.9f;
             }
 
@@ -189,7 +207,7 @@ namespace CuandoNadieMira.Menu
                     bellStart[k] = n;
                     bellPan[k] = (float)(rng.NextDouble() * 0.8 - 0.4);
                     // A veces dos notas seguidas, a veces silencios largos
-                    double gap = rng.NextDouble() < 0.3 ? 0.35 + rng.NextDouble() * 0.4 : 2.2 + rng.NextDouble() * 4.5;
+                    double gap = rng.NextDouble() < 0.3 ? 0.6 + rng.NextDouble() * 0.6 : 3.5 + rng.NextDouble() * 6.5;
                     nextBellAt = n + (long)(gap * rate);
                 }
 

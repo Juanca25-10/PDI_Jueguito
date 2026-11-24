@@ -336,6 +336,29 @@ namespace CuandoNadieMira.Menu.EditorTools
                     for (int i = 0; i < 8; i++) d = Mathf.Min(d, Seg(p, c + Polar(28, i * 45f), c + Polar(42, i * 45f)));
                     return d;
                 }
+                // --- Iconos del HUD del juego ---
+                case "Moon":
+                {
+                    float dA = Vector2.Distance(p, new Vector2(60, 64)) - 34f;
+                    float dB = Vector2.Distance(p, new Vector2(80, 76)) - 30f;
+                    return Mathf.Abs(Mathf.Max(dA, -dB));
+                }
+                case "Mouse":
+                {
+                    float body = Mathf.Abs(RoundRectDist(p, new Vector2(64, 60), new Vector2(26, 40), 24f));
+                    float wheel = Seg(p, new Vector2(64, 86), new Vector2(64, 74));
+                    float split = Seg(p, new Vector2(64, 100), new Vector2(64, 92));
+                    return Mathf.Min(body, Mathf.Min(wheel, split));
+                }
+                case "Pause":
+                    return Mathf.Min(Seg(p, new Vector2(50, 36), new Vector2(50, 92)), Seg(p, new Vector2(78, 36), new Vector2(78, 92)));
+                case "Bust":
+                {
+                    float head = Mathf.Abs(Vector2.Distance(p, new Vector2(64, 86)) - 17f);
+                    float body = Arc(p, new Vector2(64, 26), 38, 25, 155);
+                    float plinth = Mathf.Min(Seg(p, new Vector2(30, 26), new Vector2(98, 26)), Seg(p, new Vector2(40, 16), new Vector2(88, 16)));
+                    return Mathf.Min(head, Mathf.Min(body, plinth));
+                }
                 default:
                     return 999f;
             }

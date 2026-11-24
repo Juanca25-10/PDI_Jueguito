@@ -27,12 +27,12 @@ namespace CuandoNadieMira.Menu.EditorTools
         static readonly string[] IconNames =
         {
             "Eye", "EyeClosed", "Gear", "Door", "Chevron", "ChevronLeft", "Home", "Frame", "Camera", "Chair", "Head", "Person",
-            "Play", "Retry", "Warning", "Signal", "Check", "Cross", "Move", "Sun",
+            "Play", "Retry", "Warning", "Signal", "Check", "Cross", "Move", "Sun", "Moon", "Mouse", "Pause", "Bust",
         };
 
-        static Dictionary<string, Sprite> icons;
-        static Material emberMat, titleMat, feedMat;
-        static Sprite ring, headGuide;
+        internal static Dictionary<string, Sprite> icons;
+        internal static Material emberMat, titleMat, feedMat;
+        internal static Sprite ring, headGuide;
 
         // ==========================================================================================
         // Entradas
@@ -84,7 +84,7 @@ namespace CuandoNadieMira.Menu.EditorTools
         // Recursos compartidos
         // ==========================================================================================
 
-        static void LoadShared()
+        internal static void LoadShared()
         {
             B.fontTitle = MenuAssetFactory.Font("IMFellEnglish");
             B.fontBody = MenuAssetFactory.Font("CormorantGaramond");
@@ -111,7 +111,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             }
         }
 
-        static Sprite SpriteOr(string name, System.Func<Sprite> make)
+        internal static Sprite SpriteOr(string name, System.Func<Sprite> make)
         {
             var s = AssetDatabase.LoadAssetAtPath<Sprite>($"{MenuTextureFactory.Folder}/{name}.png");
             return s != null ? s : make();
@@ -166,7 +166,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             var scaler = go.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920f, 1080f);
-            scaler.matchWidthOrHeight = 0.5f;
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
 
             // Velo oscuro sobre el salón: el museo se sigue viendo, pero el texto se lee bien sobre las luces del fondo
             var scrim = new GameObject("Scrim", typeof(RectTransform), typeof(Image));
@@ -183,7 +183,7 @@ namespace CuandoNadieMira.Menu.EditorTools
         }
 
         /// <summary>Contenedor de tamaño cero en el centro: sus hijos usan coordenadas desde el centro de la pantalla.</summary>
-        static RectTransform Container(string name, Transform parent, Vector2 pos, bool canvasGroup = false)
+        internal static RectTransform Container(string name, Transform parent, Vector2 pos, bool canvasGroup = false)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.layer = B.UILayer;
@@ -196,7 +196,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return rt;
         }
 
-        static TMP_Text Label(string name, Transform parent, TMP_FontAsset font, string text, float size, float x, float y, float w, float h,
+        internal static TMP_Text Label(string name, Transform parent, TMP_FontAsset font, string text, float size, float x, float y, float w, float h,
             TextAlignmentOptions align = TextAlignmentOptions.MidlineLeft, float gray = 0.93f, FontStyles style = FontStyles.Normal)
         {
             var t = B.Text(name, parent, font, text, size, new Vector2(x, y), new Vector2(w, h));
@@ -206,7 +206,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return t;
         }
 
-        static TMP_Text Title(string name, Transform parent, string text, float size, float y, float h)
+        internal static TMP_Text Title(string name, Transform parent, string text, float size, float y, float h)
         {
             var t = Label(name, parent, B.fontTitle, text, size, -800f, y, 1600f, h, TextAlignmentOptions.Center);
             t.fontSharedMaterial = titleMat;
@@ -218,14 +218,14 @@ namespace CuandoNadieMira.Menu.EditorTools
             return t;
         }
 
-        static Image Ornament(Transform parent, float y)
+        internal static Image Ornament(Transform parent, float y)
         {
             var o = B.Img("Ornament", parent, B.sprOrnament, new Vector2(-260f, y), new Vector2(520f, 16f), new Color(1f, 1f, 1f, 0.45f));
             o.raycastTarget = false;
             return o;
         }
 
-        static Image Bar(string name, Transform parent, float x, float y, float w, float h, float bgAlpha, out Image fill)
+        internal static Image Bar(string name, Transform parent, float x, float y, float w, float h, float bgAlpha, out Image fill)
         {
             var bg = B.Img(name, parent, B.sprFill, new Vector2(x, y), new Vector2(w, h), new Color(1f, 1f, 1f, bgAlpha));
             bg.type = Image.Type.Sliced;
@@ -239,7 +239,7 @@ namespace CuandoNadieMira.Menu.EditorTools
             return bg;
         }
 
-        static Image Icon(string name, Transform parent, string icon, float x, float y, float size, float alpha = 0.92f)
+        internal static Image Icon(string name, Transform parent, string icon, float x, float y, float size, float alpha = 0.92f)
         {
             var i = B.Img(name, parent, icons[icon], new Vector2(x, y), new Vector2(size, size), new Color(1f, 1f, 1f, alpha));
             i.raycastTarget = false;

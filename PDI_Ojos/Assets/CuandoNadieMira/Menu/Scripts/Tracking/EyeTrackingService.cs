@@ -254,6 +254,7 @@ namespace CuandoNadieMira.Menu
             launchArgs = $"--carpeta \"{dir}\" --puerto {DataPort} --sin-vista --vista-puerto {FramePort} --vista-ancho 480 --vista-fps 15"
                          + (drawBoxes ? " --vista-cajas" : "")
                          + (source != null ? $" --camara \"{source}\"" : "");
+            if (SimuladorOjos.Activo) { SimuladorOjos.Asegurar(); return; }   // modo sin cámara: Unity hace de detector
             StartProcess(exe, dir);
         }
 

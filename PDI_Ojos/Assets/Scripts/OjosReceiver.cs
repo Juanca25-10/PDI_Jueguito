@@ -38,6 +38,8 @@ public class OjosReceiver : MonoBehaviour
     public bool HayRostro { get; private set; }
     public float SegCerrados => Cerrados ? Time.unscaledTime - tCierre : 0f;
     public int Parpadeos { get; private set; }
+    public string Motivo { get; private set; } = "";   // lo que reporta la red: ok, sin_rostro, rostro_pequeno...
+    public float SegSinDatos => Time.unscaledTime - ultimoPaquete;   // muy grande = aún no llega ningún paquete
 
     UdpClient cliente;
     Thread hilo;
@@ -103,6 +105,7 @@ public class OjosReceiver : MonoBehaviour
             ultimoPaquete = ahora;
             Paquete d = null;
             try { d = JsonUtility.FromJson<Paquete>(msg); } catch (ArgumentException) { }
+            if (d != null) Motivo = d.motivo ?? "";
             if (d == null) { /* paquete que no es JSON: se ignora */ }
             else if (d.cara) { EstablecerRostro(true); Procesar(d.p, ahora); }
             else EstablecerRostro(false);

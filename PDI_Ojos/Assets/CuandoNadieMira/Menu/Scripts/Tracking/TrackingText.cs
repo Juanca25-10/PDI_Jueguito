@@ -16,7 +16,13 @@ namespace CuandoNadieMira.Menu
                 case TrackingState.Off:
                 case TrackingState.Starting: return "Encendiendo la cámara...";
             }
-            return s.Last.reason switch
+            return ProblemFor(s.Last.reason);
+        }
+
+        /// <summary>Qué pasa según el motivo que manda la red (ok, sin_rostro, rostro_pequeno...).</summary>
+        public static string ProblemFor(string reason)
+        {
+            return reason switch
             {
                 "ok" => "Te vemos bien.",
                 "sin_rostro" => "No se detecta tu rostro.",
@@ -43,7 +49,13 @@ namespace CuandoNadieMira.Menu
                 case TrackingState.Off:
                 case TrackingState.Starting: return "Esto tarda unos segundos la primera vez.";
             }
-            return s.Last.reason switch
+            return AdviceFor(s.Last.reason);
+        }
+
+        /// <summary>Qué hacer según el motivo que manda la red.</summary>
+        public static string AdviceFor(string reason)
+        {
+            return reason switch
             {
                 "ok" => "Mantente así.",
                 "sin_rostro" => "Siéntate frente a la cámara y mira hacia ella.",

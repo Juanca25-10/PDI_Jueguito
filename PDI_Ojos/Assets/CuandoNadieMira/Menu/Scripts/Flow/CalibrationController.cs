@@ -103,7 +103,11 @@ namespace CuandoNadieMira.Menu
         {
             ShowIdle();
             if (transition != null) yield return transition.FadeIn(1.2f);
+            Voz.Decir("cal_01_bienvenida");
         }
+
+        int idleVoice;   // 1 = encendiendo, 2 = listo (para no repetir la frase)
+        void IdleVoice(int v, string clip) { if (idleVoice == v) return; idleVoice = v; Voz.Encolar(clip); }
 
         void Update()
         {
@@ -189,10 +193,12 @@ namespace CuandoNadieMira.Menu
             {
                 instruction.text = "Encendiendo la cámara...";
                 hint.text = "Esto tarda unos segundos la primera vez.";
+                IdleVoice(1, "cal_02_encendiendo");
             }
             else
             {
                 instruction.text = "Cuando estés listo, pulsa <b>Iniciar calibración</b>.";
+                IdleVoice(2, "cal_03_listo");
                 hint.text = s.HasFace ? "Ya te vemos. Ponte cómodo: la calibración dura menos de un minuto." : TrackingText.Advice(s);
             }
             phaseBar.fillAmount = 0f;
@@ -296,12 +302,15 @@ namespace CuandoNadieMira.Menu
             SetStepVisuals(0, 0f);
             Layout(btnCancel);
             instruction.text = "Siéntate frente a la cámara y centra tu cara en la guía.";
+            Voz.Decir("cal_04_centrar");
+            bool saidGood = false;
             float held = 0f;
             while (held < positionHold)
             {
                 var s = Service;
                 bool good = s != null && s.HasFace && s.Last.reason == "ok" && s.IsStable(1f);
                 held = good ? held + Time.unscaledDeltaTime : Mathf.Max(0f, held - Time.unscaledDeltaTime * 2f);
+                if (good && !saidGood && held > 0.4f) { saidGood = true; Voz.Encolar("cal_05_bien"); }
                 hint.text = good ? "Muy bien. Quédate así un momento..." : TrackingText.Problem(s) + " " + TrackingText.Advice(s);
                 phaseBar.fillAmount = held / positionHold;
                 SetStepVisuals(0, held / positionHold);
@@ -320,6 +329,9 @@ namespace CuandoNadieMira.Menu
             openSamples.Clear();
             instruction.text = "Mira al centro del marco con los ojos <b>abiertos</b>.";
             hint.text = "Parpadea con normalidad. Solo mide unos segundos.";
+            yield return Voz.Esperar(3f);
+            Voz.Decir("cal_06_abiertos");
+            yield return Voz.Esperar(6f);
             yield return Countdown(2, "Mira al centro");
             yield return Capture(openSamples, openCapture, 1, "Ojos abiertos");
             Chime();
@@ -335,11 +347,15 @@ namespace CuandoNadieMira.Menu
             instruction.text = "Al sonar la campana, <b>cierra los ojos</b>. Ábrelos con la segunda campana.";
             hint.text = "Mantén la cabeza recta y quieta mientras tanto.";
             MenuMusic.Instance?.FadeTo(0.25f, 0.6f);
+            Voz.Decir("cal_07_aviso");
+            yield return Voz.Esperar(9f);
             yield return Countdown(3, "Prepárate");
             MenuAudio.Instance?.Play(MenuSound.Bell, 1.4f, 0f);
+            Voz.Decir("cal_08_cierra");
             SetCountdown("Ojos cerrados");
             yield return Capture(closedSamples, closedCapture, 2, "Ojos cerrados");
             MenuAudio.Instance?.Play(MenuSound.Bell, 1.4f, 0f);
+            Voz.Decir("cal_09_abre");
             SetCountdown("Abre los ojos");
             MenuMusic.Instance?.FadeTo(1f, 1.5f);
             yield return new WaitForSecondsRealtime(0.8f);
@@ -399,6 +415,7 @@ namespace CuandoNadieMira.Menu
             Layout(btnSkipTest, btnCancel);
             blinksDone = 0;
             instruction.text = $"Prueba final: <b>parpadea {verifyBlinks} veces</b>, despacio.";
+            Voz.Encolar("cal_10_parpadea");
             float smoothed = -1f;
             bool closed = false;
             float start = Time.unscaledTime;
@@ -449,6 +466,8 @@ namespace CuandoNadieMira.Menu
             resTest.text = blinksDone >= verifyBlinks ? $"{blinksDone} de {verifyBlinks}  ·  superada"
                 : blinksDone > 0 ? $"{blinksDone} de {verifyBlinks}  ·  repite si el juego no te responde bien" : "omitida";
             instruction.text = "Listo. El museo ya conoce tu mirada.";
+            Voz.Decir("cal_11_completado");
+            if (result.quality == CalibrationQuality.Aceptable) Voz.Encolar("cal_12_poca_luz");
             hint.text = result.quality == CalibrationQuality.Aceptable
                 ? "La calidad es justa: con más luz sobre tu cara el juego te leerá mejor."
                 : "Los umbrales se guardaron y el juego los usará.";
@@ -465,6 +484,7 @@ namespace CuandoNadieMira.Menu
             MenuAudio.Instance?.Play(MenuSound.Snuff, 1f);
             SetStepVisuals(2, 0f);
             instruction.text = "No pudimos calibrar tus ojos.";
+            Voz.Decir("cal_13_fallo");
             hint.text = result.problem;
             phaseBar.fillAmount = 0f;
             Layout(btnRepeat, btnBack);
@@ -497,6 +517,7 @@ namespace CuandoNadieMira.Menu
                 SetCountdown("");
                 MenuMusic.Instance?.FadeTo(1f, 1f);
                 lostPanel.Show();
+                Voz.Decir("cal_14_perdido");
             }
         }
 

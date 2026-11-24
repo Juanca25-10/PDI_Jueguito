@@ -36,12 +36,18 @@ public class Estatua : MonoBehaviour
     public Transform contenedorPoses;       // sus hijos, en orden, son las poses
     [Tooltip("Opcional: un modelo distinto por pose (uno por cada pose, en orden; el modelo base puede ser el primero). El de la pose actual se activa y se coloca en su punto. Si lo dejas vacío se mueve 'Modelo'.")]
     public GameObject[] variantesPorPose;
+    [Tooltip("Multiplica el tamaño de los modelos (base y variantes) al empezar.")]
+    public float escalaModelo = 1.25f;
+    [Tooltip("Centra el modelo sobre el punto de la pose y lo apoya a esa altura, aunque el pivote del modelo esté corrido.")]
+    public bool centrarEnPose = true;
 
     [Header("Dificultad")]
     [Tooltip("Cuando la barra de amanecer (0-100) pasa de este valor, la estatua empieza a moverse.")]
     public float activaDesdeProgreso = 0f;
     [Tooltip("Segundos CON LOS OJOS CERRADOS que tarda en avanzar una pose.")]
     public float segPorPose = 14f;
+    [Tooltip("Multiplica segPorPose al final de la noche: 0.55 = casi el doble de rápido al amanecer")]
+    [Range(0.3f, 1f)] public float ritmoAlAmanecer = 0.55f;
     [Tooltip("Segundos con los ojos abiertos (ya sostenidos) para que retroceda una pose.")]
     [FormerlySerializedAs("segMiradaParaRetroceder")]
     public float segAbiertoParaRetroceder = 2f;
@@ -81,6 +87,12 @@ public class Estatua : MonoBehaviour
             return;
         }
         foreach (Transform p in contenedorPoses) poses.Add(p);
+        if (!Mathf.Approximately(escalaModelo, 1f))
+        {
+            var escalados = new HashSet<Transform> { modelo };
+            if (variantesPorPose != null) foreach (var v in variantesPorPose) if (v != null) escalados.Add(v.transform);
+            foreach (var t in escalados) t.localScale *= escalaModelo;
+        }
         if (fuente != null)
         {
             // Si el AudioSource está en la raíz (o en un padre de Modelo/Poses), moverlo arrastraría los puntos de pose.
@@ -126,7 +138,27 @@ public class Estatua : MonoBehaviour
             if (PoseActual < variantesPorPose.Length && variantesPorPose[PoseActual] != null)
                 variantesPorPose[PoseActual].SetActive(true);
         }
-        Visible.SetPositionAndRotation(poses[PoseActual].position, poses[PoseActual].rotation);
+        var punto = poses[PoseActual];
+        var vis = Visible;
+        vis.SetPositionAndRotation(punto.position, punto.rotation);
+        if (centrarEnPose) Centrar(vis, punto.position, escalaModelo);
+    }
+
+    // Lleva el centro del modelo (en planta) al punto de la pose; en altura deja la base donde quedaba antes de escalar.
+    static void Centrar(Transform v, Vector3 punto, float escala)
+    {
+        var rs = v.GetComponentsInChildren<Renderer>();
+        bool hay = false;
+        Bounds b = default;
+        foreach (var r in rs)
+        {
+            if (!r.enabled || r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
+            if (!hay) { b = r.bounds; hay = true; } else b.Encapsulate(r.bounds);
+        }
+        if (!hay) return;
+        float baseEscalada = b.min.y - v.position.y;
+        float baseOriginal = escala > 0.01f ? baseEscalada / escala : baseEscalada;
+        v.position += new Vector3(punto.x - b.center.x, baseOriginal - baseEscalada, punto.z - b.center.z);
     }
 
     // ------------------------------------------------------------ ojos cerrados: avanza
@@ -134,7 +166,9 @@ public class Estatua : MonoBehaviour
     {
         if (cambiando || PoseActual >= PoseFinal) return;
         tAvance += dt;
-        if (tAvance < segPorPose) return;
+        // Cuanto más avanzada la noche, más rápido se mueven (al amanecer, segPorPose * ritmoAlAmanecer)
+        float noche = GameManager.Instancia != null ? GameManager.Instancia.progreso / 100f : 0f;
+        if (tAvance < segPorPose * Mathf.Lerp(1f, ritmoAlAmanecer, noche)) return;
         tAvance = 0f;
         PonerPose(PoseActual + 1);
         Sonar(PoseActual);
