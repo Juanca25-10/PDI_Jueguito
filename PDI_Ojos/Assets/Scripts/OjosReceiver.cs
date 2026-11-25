@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -9,10 +10,25 @@ using UnityEngine.Events;
 /// <summary>
 /// Recibe por UDP la probabilidad P(Cerrados) que envía ojos_server.py y la convierte
 /// en eventos de juego. Solo hay que poner este script en un GameObject de la escena.
+///
+/// Mensaje (Tabla 8): {"seq","timestamp_ms","valid","state","p","face_score","motivo"}.
+/// Se procesan todos los paquetes en orden de llegada y se descarta el que traiga un seq menor o igual
+/// al último aceptado. Si el servidor se reinicia (seq que cae mucho o silencio > timeoutSinDatos) se acepta.
 /// </summary>
 public class OjosReceiver : MonoBehaviour
 {
-    [Serializable] class Paquete { public bool cara; public float p; public string motivo; }
+    [Serializable]
+    class Paquete
+    {
+        public int seq;
+        public long timestamp_ms;
+        public bool valid;           // cara válida y banda de ojos recortable
+        public string state;         // sin_camara | sin_rostro | abiertos | cerrados
+        public float p;              // P(cerrados)
+        public float face_score;     // puntuación de la U-Net en la cara
+        public string motivo;
+        public bool cara;            // campo del servidor anterior (respaldo)
+    }
 
     [Header("Red (debe coincidir con --puerto de Python)")]
     public int puerto = 5005;
@@ -23,6 +39,7 @@ public class OjosReceiver : MonoBehaviour
     [Range(0.05f, 1f)] public float suavizado = 0.5f;    // 1 = sin suavizar
     public float segCierreLargo = 1.0f;                  // cierre "castigable" (parpadeo < esto)
     public float timeoutSinDatos = 1.0f;                 // sin paquetes -> Python caído
+    public int saltoReinicio = 1000;                     // si seq baja más que esto se asume que Python se reinició
 
     [Header("Eventos (conéctalos en el Inspector o con AddListener)")]
     public UnityEvent OnCerrados;        // los ojos pasaron a cerrados
@@ -41,11 +58,20 @@ public class OjosReceiver : MonoBehaviour
     public string Motivo { get; private set; } = "";   // lo que reporta la red: ok, sin_rostro, rostro_pequeno...
     public float SegSinDatos => Time.unscaledTime - ultimoPaquete;   // muy grande = aún no llega ningún paquete
 
+    // Datos del último paquete aceptado (Tabla 8)
+    public string Estado { get; private set; } = "sin_rostro";   // sin_camara | sin_rostro | abiertos | cerrados
+    public float FaceScore { get; private set; }
+    public int UltimoSeq { get; private set; } = -1;
+    public float LatenciaMs { get; private set; }     // reloj de Unity - timestamp_ms (mismo equipo)
+    public int Aceptados { get; private set; }
+    public int Descartados { get; private set; }      // fuera de orden, repetidos o inválidos
+
     UdpClient cliente;
     Thread hilo;
     volatile bool corriendo;
     readonly object candado = new object();
-    string pendiente;
+    readonly Queue<string> cola = new Queue<string>();
+    const int MaxCola = 64;                        // si Unity se atrasa se descartan los más viejos
     float ultimoPaquete = -999f, tCierre;
     bool cierreLargoDisparado, primero = true;
 
@@ -66,6 +92,8 @@ public class OjosReceiver : MonoBehaviour
 
     void OnEnable()
     {
+        UltimoSeq = -1; Aceptados = Descartados = 0; primero = true;
+        lock (candado) cola.Clear();
         cliente = new UdpClient(new IPEndPoint(IPAddress.Loopback, puerto));
         corriendo = true;
         hilo = new Thread(Escuchar) { IsBackground = true };
@@ -87,7 +115,12 @@ public class OjosReceiver : MonoBehaviour
             try
             {
                 var bytes = cliente.Receive(ref origen);
-                lock (candado) pendiente = Encoding.UTF8.GetString(bytes);   // solo importa el último
+                string texto = Encoding.UTF8.GetString(bytes);
+                lock (candado)
+                {
+                    cola.Enqueue(texto);
+                    while (cola.Count > MaxCola) cola.Dequeue();
+                }
             }
             catch (SocketException) { }       // al cerrar el socket
             catch (ObjectDisposedException) { }
@@ -96,22 +129,17 @@ public class OjosReceiver : MonoBehaviour
 
     void Update()
     {
-        string msg;
-        lock (candado) { msg = pendiente; pendiente = null; }
-
         float ahora = Time.unscaledTime;       // unscaled: sigue funcionando con timeScale = 0
-        if (msg != null)
+
+        string[] mensajes;
+        lock (candado) { mensajes = cola.ToArray(); cola.Clear(); }
+        foreach (var texto in mensajes) Recibir(texto, ahora);
+
+        if (mensajes.Length == 0 && HayRostro && ahora - ultimoPaquete > timeoutSinDatos)
         {
-            ultimoPaquete = ahora;
-            Paquete d = null;
-            try { d = JsonUtility.FromJson<Paquete>(msg); } catch (ArgumentException) { }
-            if (d != null) Motivo = d.motivo ?? "";
-            if (d == null) { /* paquete que no es JSON: se ignora */ }
-            else if (d.cara) { EstablecerRostro(true); Procesar(d.p, ahora); }
-            else EstablecerRostro(false);
-        }
-        else if (HayRostro && ahora - ultimoPaquete > timeoutSinDatos)
+            Estado = "sin_camara";
             EstablecerRostro(false);           // Python se cayó o se cerró
+        }
 
         // Cierre largo: se avisa una sola vez mientras siga cerrado
         if (Cerrados && !cierreLargoDisparado && ahora - tCierre >= segCierreLargo)
@@ -119,6 +147,31 @@ public class OjosReceiver : MonoBehaviour
             cierreLargoDisparado = true;
             OnCierreLargo.Invoke();
         }
+    }
+
+    // Valida el paquete, descarta los fuera de orden y aplica el resultado
+    void Recibir(string texto, float ahora)
+    {
+        Paquete d = null;
+        try { d = JsonUtility.FromJson<Paquete>(texto); } catch (ArgumentException) { }
+        if (d == null) { Descartados++; return; }                  // no es JSON: se ignora
+
+        bool silencio = ultimoPaquete > 0f && ahora - ultimoPaquete > timeoutSinDatos;
+        bool reinicio = UltimoSeq - d.seq > saltoReinicio || silencio;
+        if (d.seq <= UltimoSeq && !reinicio) { Descartados++; return; }   // llegó tarde o repetido
+
+        UltimoSeq = d.seq;
+        Aceptados++;
+        ultimoPaquete = ahora;
+        Motivo = d.motivo ?? "";
+        FaceScore = d.face_score;
+        if (d.timestamp_ms > 0)
+            LatenciaMs = Mathf.Max(0f, DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - d.timestamp_ms);
+
+        bool hayCara = d.valid || d.cara;                          // "cara" = servidor anterior
+        Estado = !string.IsNullOrEmpty(d.state) ? d.state : (hayCara ? "abiertos" : "sin_rostro");
+        if (hayCara) { EstablecerRostro(true); Procesar(d.p, ahora); }
+        else EstablecerRostro(false);
     }
 
     void EstablecerRostro(bool hay)

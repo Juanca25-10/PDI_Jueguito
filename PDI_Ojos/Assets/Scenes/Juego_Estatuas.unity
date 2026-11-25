@@ -10139,6 +10139,7 @@ MonoBehaviour:
   suavizado: 0.5
   segCierreLargo: 1
   timeoutSinDatos: 1
+  saltoReinicio: 1000
   OnCerrados:
     m_PersistentCalls:
       m_Calls:
@@ -16717,9 +16718,9 @@ MonoBehaviour:
   escalaModelo: 1
   centrarEnPose: 1
   activaDesdeProgreso: 20
-  segPorPose: 8
+  segPorPose: 12
   ritmoAlAmanecer: 0.538
-  segAbiertoParaRetroceder: 10
+  segAbiertoParaRetroceder: 7
   retrasoCambio: 0.11
   efectoRetroceso: {fileID: 534608082}
   alturaReferencia: 2
@@ -17355,6 +17356,10 @@ PrefabInstance:
     - target: {fileID: 2224747896374893749, guid: 6f324085eb556f94a94a28fee8865e08, type: 3}
       propertyPath: m_TextStyleHashCode
       value: -1183493901
+      objectReference: {fileID: 0}
+    - target: {fileID: 2345522745284792843, guid: 6f324085eb556f94a94a28fee8865e08, type: 3}
+      propertyPath: m_overflowMode
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2345522745284792843, guid: 6f324085eb556f94a94a28fee8865e08, type: 3}
       propertyPath: m_TextStyleHashCode
