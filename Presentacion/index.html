@@ -212,12 +212,32 @@ img { filter: grayscale(1); }
 .slide[data-k="datos"]::before, .slide[data-k="rcnn"]::before, .slide[data-k="unet"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(6,6,6,.85) 0%, rgba(6,6,6,.55) 55%, rgba(6,6,6,.15) 100%); }
 .slide[data-k="pipeline"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(6,6,6,.74); }
 
+/* Dos columnas de texto (problema, filtro) */
+.par { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 2rem; background: var(--linea); width: 100%; max-width: 50rem !important; }
+.par > div { background: rgba(6,6,6,.78); padding: 1.3rem 1.5rem; backdrop-filter: blur(3px); }
+.par .t { font-family: var(--f-display); font-size: 1.05rem; letter-spacing: .12em; text-transform: uppercase; color: var(--vela); }
+.par p { margin: .5rem 0 0; font-family: var(--f-texto); font-size: clamp(1.05rem, 1.6vw, 1.3rem); color: var(--hueso); line-height: 1.3; }
+.par em { font-style: italic; color: var(--vela); }
+/* Listas numeradas (objetivos, conclusiones) */
+.lista { margin: 1.8rem 0 0; padding: 0; list-style: none; counter-reset: n; max-width: 44rem !important; }
+.lista li { counter-increment: n; position: relative; display: block; padding: .55rem 0 .55rem 2.6rem; border-bottom: 1px solid var(--linea);
+  font-family: var(--f-texto); font-size: clamp(1.1rem, 1.8vw, 1.45rem); color: var(--hueso); line-height: 1.3; text-shadow: 0 0 18px #000; }
+.lista li::before { position: absolute; left: 0; top: .95rem; content: counter(n, decimal-leading-zero); font-family: var(--f-dato); font-size: .75rem; color: var(--ceniza); }
+.lista b { font-family: var(--f-display); font-weight: 600; letter-spacing: .04em; color: var(--vela); }
+/* Capturas del juego */
+.capturas { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; margin-top: 1.6rem; width: min(1200px, 94vw); max-width: none !important; }
+.capturas figure { margin: 0; }
+.capturas img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; box-shadow: 0 0 0 1px var(--linea), 0 30px 80px rgba(0,0,0,.8); }
+.capturas figcaption { font-family: var(--f-dato); font-size: .75rem; color: var(--ceniza); margin-top: .7rem; letter-spacing: .04em; }
+.slide[data-k="problema"]::before, .slide[data-k="objetivos"]::before, .slide[data-k="filtro"]::before, .slide[data-k="validacion"]::before, .slide[data-k="conclusiones"]::before, .slide[data-k="cnn"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(6,6,6,.88) 0%, rgba(6,6,6,.6) 60%, rgba(6,6,6,.2) 100%); }
+.slide[data-k="interfaz"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(6,6,6,.7); }
+
 body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
 
 @media (max-width: 720px) {
   .slide { padding: 0 8px; }
   .fallos { grid-template-columns: 1fr 1fr; }
-  .duelo { grid-template-columns: 1fr; }
+  .duelo, .par, .capturas { grid-template-columns: 1fr; }
   .cinta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .veredicto { grid-column: span 2; border-left: 0; padding-left: 0; }
   .etapa.banda { grid-column: span 2; }
@@ -248,32 +268,49 @@ body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
     <p class="pista">Clic o → para avanzar</p>
   </section>
 
-  <section class="slide izq" data-k="premisa" data-seg="35">
-    <h2>Un museo<br>que te observa.</h2>
-    <p class="frase">Un juego de terror sobre mitos colombianos que se juega <em>con la mirada</em>: la cámara web lee tus ojos.</p>
-  </section>
-
-  <section class="slide centro" data-k="flujo" data-seg="40">
-    <p class="ceja">Lo que hicimos en procesamiento de imágenes</p>
-    <h2>De la cámara al juego</h2>
-    <div class="flujo" id="flujo">
-      <div class="nodo"><img src="assets/img/icon_Camera.png" alt=""><div class="n">Cámara</div><div class="d">la imagen en vivo</div></div>
-      <div class="nodo"><img src="assets/img/icon_Head.png" alt=""><div class="n">Rostro</div><div class="d">lo separamos<br>del fondo</div></div>
-      <div class="nodo"><img src="assets/img/icon_Eye.png" alt=""><div class="n">Ojos</div><div class="d">recortamos<br>esa franja</div></div>
-      <div class="nodo"><img src="assets/img/icon_EyeClosed.png" alt=""><div class="n">Decisión</div><div class="d">¿abiertos<br>o cerrados?</div></div>
-      <div class="nodo"><img src="assets/img/icon_Signal.png" alt=""><div class="n">Envío</div><div class="d">un mensaje<br>por cuadro</div></div>
-      <div class="nodo"><img src="assets/img/icon_Gamepad.png" alt=""><div class="n">Juego</div><div class="d">el museo<br>reacciona</div></div>
+  <section class="slide izq" data-k="problema" data-seg="40">
+    <p class="ceja">El problema · Expresión humana en el arte y la cultura</p>
+    <h2>Del espectador<br>al participante</h2>
+    <div class="par">
+      <div><div class="t">Cultura</div><p>En un museo de mitos colombianos el visitante solo <em>mira</em>: no tiene forma de intervenir en la obra.</p></div>
+      <div><div class="t">Imagen</div><p>Leer un gesto humano —abrir o cerrar los ojos— en cada cuadro de una cámara web, sin importar dónde esté la persona.</p></div>
     </div>
   </section>
 
+  <section class="slide izq" data-k="objetivos" data-seg="35">
+    <p class="ceja">Objetivos</p>
+    <h2>Lo que nos propusimos</h2>
+    <ol class="lista">
+      <li><b>Localizar</b> el rostro en el cuadro completo de la cámara.</li>
+      <li><b>Clasificar</b> el estado de los ojos con una red propia.</li>
+      <li><b>Estabilizar</b> la decisión en el tiempo y adaptarla a cada persona.</li>
+      <li><b>Evaluar</b> con métricas y con pruebas de una persona real.</li>
+      <li><b>Integrar</b> todo en una interfaz: el propio juego.</li>
+    </ol>
+  </section>
+
+  <section class="slide centro" data-k="flujo" data-seg="45">
+    <p class="ceja">Arquitectura del sistema</p>
+    <h2>De la cámara al juego</h2>
+    <div class="flujo" id="flujo">
+      <div class="nodo"><img src="assets/img/icon_Camera.png" alt=""><div class="n">Captura</div><div class="d">cuadro RGB<br>de la webcam</div></div>
+      <div class="nodo"><img src="assets/img/icon_Head.png" alt=""><div class="n">Segmentación</div><div class="d">U-Net: máscara<br>del rostro</div></div>
+      <div class="nodo"><img src="assets/img/icon_Eye.png" alt=""><div class="n">ROI ocular</div><div class="d">caja → banda<br>gris 80 × 160</div></div>
+      <div class="nodo"><img src="assets/img/icon_EyeClosed.png" alt=""><div class="n">Clasificación</div><div class="d">CNN: P(ojos<br>cerrados)</div></div>
+      <div class="nodo"><img src="assets/img/icon_Signal.png" alt=""><div class="n">Filtro + UDP</div><div class="d">histéresis ·<br>JSON por cuadro</div></div>
+      <div class="nodo"><img src="assets/img/icon_Gamepad.png" alt=""><div class="n">GUI</div><div class="d">Unity reacciona<br>y lo muestra</div></div>
+    </div>
+    <p class="dato">Python · OpenCV · ONNX Runtime → UDP local → Unity</p>
+  </section>
+
   <section class="slide izq" data-k="datos" data-seg="40">
-    <p class="ceja">1 · Las imágenes</p>
+    <p class="ceja">1 · Los datos</p>
     <div class="cifra">349</div>
     <p class="frase">fotos con <em>1047 rostros y ojos</em> marcados a mano, con ayuda de MediaPipe.</p>
   </section>
 
-  <section class="slide izq" data-k="rcnn" data-seg="45">
-    <p class="ceja">2 · Encontrar rostro y ojos</p>
+  <section class="slide izq" data-k="rcnn" data-seg="40">
+    <p class="ceja">2 · Detección de rostro y ojos</p>
     <h2>Dos detectores</h2>
     <div class="duelo">
       <div><div class="cifra">91,7<small>%</small></div><p><b>Faster R-CNN</b><br>encierra cada rostro y cada ojo en una caja.</p></div>
@@ -283,20 +320,20 @@ body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
   </section>
 
   <section class="slide izq" data-k="unet" data-seg="40">
-    <p class="ceja">3 · Separar el rostro del fondo</p>
+    <p class="ceja">3 · Segmentación del rostro</p>
     <div class="cifra">0,93</div>
-    <p class="frase">de coincidencia entre la máscara de la <em>U-Net</em> y el rostro real.</p>
+    <p class="frase">de índice Dice entre la máscara de la <em>U-Net</em> y el rostro real.</p>
     <p class="dato">80 fotos propias · 9 personas</p>
   </section>
 
-  <section class="slide centro" data-k="pipeline" data-seg="75">
-    <p class="ceja">4 · Paso a paso, con fotos reales</p>
+  <section class="slide centro" data-k="pipeline" data-seg="70">
+    <p class="ceja">4 · El procesamiento, paso a paso</p>
     <div class="cinta" id="cinta">
-      <div class="etapa"><div class="img"><img data-e="1_entrada.jpg" alt="Imagen de entrada"></div><div class="n"><span>01</span>Foto</div><div class="d">lo que ve la cámara</div></div>
-      <div class="etapa"><div class="img"><img data-e="2_prob.jpg" alt="Mapa de probabilidad de la U-Net"></div><div class="n"><span>02</span>¿Dónde hay rostro?</div><div class="d">la U-Net lo estima píxel a píxel</div></div>
-      <div class="etapa"><div class="img"><img data-e="3_mascara.png" alt="Máscara binaria"></div><div class="n"><span>03</span>Máscara</div><div class="d">rostro en blanco, fondo en negro</div></div>
-      <div class="etapa"><div class="img"><img data-e="4_caja.jpg" alt="Caja del rostro y banda ocular"></div><div class="n"><span>04</span>Ubicar los ojos</div><div class="d">caja del rostro y franja de los ojos</div></div>
-      <div class="etapa banda"><div class="img"><img data-e="5_banda.png" alt="Banda ocular 80 por 160"></div><div class="n"><span>05</span>Recorte de los ojos</div><div class="d">en gris, lo que lee la red</div></div>
+      <div class="etapa"><div class="img"><img data-e="1_entrada.jpg" alt="Imagen de entrada"></div><div class="n"><span>01</span>Entrada</div><div class="d">cuadro de la cámara</div></div>
+      <div class="etapa"><div class="img"><img data-e="2_prob.jpg" alt="Mapa de probabilidad de la U-Net"></div><div class="n"><span>02</span>Probabilidad</div><div class="d">U-Net, píxel a píxel</div></div>
+      <div class="etapa"><div class="img"><img data-e="3_mascara.png" alt="Máscara binaria"></div><div class="n"><span>03</span>Máscara</div><div class="d">umbral → binaria</div></div>
+      <div class="etapa"><div class="img"><img data-e="4_caja.jpg" alt="Caja del rostro y banda ocular"></div><div class="n"><span>04</span>Caja y ROI</div><div class="d">caja del rostro y franja de ojos</div></div>
+      <div class="etapa banda"><div class="img"><img data-e="5_banda.png" alt="Banda ocular 80 por 160"></div><div class="n"><span>05</span>Banda ocular</div><div class="d">gris, 80 × 160: entrada de la CNN</div></div>
       <div class="veredicto" id="veredicto"><div class="lbl">06 · Probabilidad de ojos cerrados</div><div class="cifra" id="vP">0,00</div><div class="clase" id="vClase">—</div><div class="medidor"><i id="vBarra"></i><b></b></div></div>
     </div>
     <div class="fotos" id="fotos">
@@ -307,40 +344,71 @@ body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
   </section>
 
   <section class="slide izq" data-k="cnn" data-seg="35">
-    <p class="ceja">5 · Leer los ojos</p>
+    <p class="ceja">5 · Clasificación del estado ocular</p>
     <div class="cifra">97,4<small>%</small></div>
-    <p class="frase">de aciertos de la red que decide si los ojos están <em>abiertos o cerrados</em>.</p>
+    <p class="frase">de exactitud de la CNN que decide si los ojos están <em>abiertos o cerrados</em>.</p>
+  </section>
+
+  <section class="slide izq" data-k="filtro" data-seg="40">
+    <p class="ceja">6 · De la probabilidad a una decisión</p>
+    <h2>Calibración e histéresis</h2>
+    <div class="par">
+      <div><div class="t">Por persona</div><p>Se mide P(cerrados) con los ojos abiertos y cerrados; los umbrales salen de sus percentiles.</p></div>
+      <div><div class="t">Dos umbrales</div><p>Cerrar exige más que abrir: un parpadeo suelto o un cuadro ruidoso no cambian el estado.</p></div>
+    </div>
+  </section>
+
+  <section class="slide izq" data-k="validacion" data-seg="45">
+    <p class="ceja">7 · Prueba con una persona real</p>
+    <h2>Calibración en vivo</h2>
+    <table class="tabla">
+      <thead><tr><th></th><th>Lecturas</th><th>P(cerrados) media</th></tr></thead>
+      <tbody>
+        <tr><td>Ojos abiertos</td><td>48</td><td>0,20</td></tr>
+        <tr><td>Ojos cerrados</td><td>50</td><td>0,94</td></tr>
+        <tr><td>Umbral para cerrar · abrir</td><td></td><td>0,62 · 0,45</td></tr>
+        <tr><td>Prueba de parpadeo</td><td></td><td>2 de 2</td></tr>
+      </tbody>
+    </table>
+    <p class="dato">video de un integrante leído en tiempo real por el detector · calidad «Excelente»</p>
   </section>
 
   <section class="slide centro" data-k="fallos" data-seg="35">
-    <p class="ceja">6 · Cuando la imagen no es clara</p>
-    <h2>El juego espera</h2>
+    <p class="ceja">8 · Limitaciones y robustez</p>
+    <h2>Cuando la imagen no es clara</h2>
     <div class="fallos">
-      <div class="fallo"><img src="assets/img/icon_Head.png" alt=""><div><div class="t">Muy lejos</div><div class="d">Te pide acercarte.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Head.png" alt=""><div><div class="t">Muy lejos</div><div class="d">La banda ocular pierde detalle: pide acercarse.</div></div></div>
       <div class="fallo"><img src="assets/img/icon_Person.png" alt=""><div><div class="t">Dos personas</div><div class="d">No decide por nadie.</div></div></div>
-      <div class="fallo"><img src="assets/img/icon_Camera.png" alt=""><div><div class="t">Rostro cortado</div><div class="d">Te pide centrarte.</div></div></div>
-      <div class="fallo"><img src="assets/img/icon_Eye.png" alt=""><div><div class="t">Un parpadeo</div><div class="d">No cuenta como cerrar los ojos.</div></div></div>
-      <div class="fallo"><img src="assets/img/icon_Warning.png" alt=""><div><div class="t">Manchas</div><div class="d">Se ignoran.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Camera.png" alt=""><div><div class="t">Rostro cortado</div><div class="d">Pide centrarse.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Eye.png" alt=""><div><div class="t">Poca luz</div><div class="d">Baja la diferencia abiertos / cerrados: hay que recalibrar.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Warning.png" alt=""><div><div class="t">Sin rostro</div><div class="d">Nunca cuenta como ojos cerrados.</div></div></div>
       <div class="fallo"><img src="assets/img/icon_Signal.png" alt=""><div><div class="t">Sin cámara</div><div class="d">El juego se pausa.</div></div></div>
     </div>
   </section>
 
-  <section class="slide izq abajo" data-k="llorona" data-seg="30">
-    <p class="ceja">Escultura I</p>
-    <h2>La Llorona</h2>
-    <p class="frase">Vaga por los cauces nocturnos lamentando la pérdida de sus hijos.</p>
+  <section class="slide izq" data-k="conclusiones" data-seg="40">
+    <p class="ceja">Conclusiones</p>
+    <h2>Lo que aprendimos</h2>
+    <ol class="lista">
+      <li>Separar <b>segmentación</b> y <b>clasificación</b> permite saber en qué etapa falla el sistema.</li>
+      <li>La <b>calibración por persona</b> pesa tanto como la exactitud de la red.</li>
+      <li>Un gesto mínimo, leído con PDI, basta para que el público <b>participe</b> en una obra.</li>
+    </ol>
+    <p class="dato">Mejoras: más personas y condiciones de luz · menor latencia · más gestos que solo abrir y cerrar</p>
   </section>
 
-  <section class="slide izq abajo" data-k="mohan" data-seg="30">
-    <p class="ceja">Escultura II</p>
-    <h2>El Mohán</h2>
-    <p class="frase">Habita en cuevas bajo las aguas del río Magdalena.</p>
+  <section class="slide izq abajo" data-k="museo" data-seg="30">
+    <p class="ceja">El proyecto</p>
+    <h2>Cuando nadie mira</h2>
+    <p class="frase">Un museo de noche: la <em>Llorona</em>, el <em>Mohán</em> y la <em>Madremonte</em> solo se mueven cuando cierras los ojos.</p>
   </section>
 
-  <section class="slide izq abajo" data-k="madremonte" data-seg="30">
-    <p class="ceja">Escultura III</p>
-    <h2>La Madremonte</h2>
-    <p class="frase">Guardiana de las selvas y de los nacimientos de agua.</p>
+  <section class="slide centro" data-k="interfaz" data-seg="30">
+    <p class="ceja">La interfaz es el juego</p>
+    <div class="capturas">
+      <figure><img src="assets/img/gui_calibracion.jpg" alt="Pantalla de calibración con el rostro detectado"><figcaption>Calibración: rostro, lectura y umbrales</figcaption></figure>
+      <figure><img src="assets/img/gui_juego.jpg" alt="Juego con los ojos cerrados: la vista se oscurece y el HUD marca Cerrados 92 %"><figcaption>Turno: ojos cerrados, la vista se oscurece</figcaption></figure>
+    </div>
   </section>
 
   <section class="slide centro" data-k="trailer" data-seg="90">
@@ -411,18 +479,21 @@ const $ = (s) => document.querySelector(s);
 
 // ------------------------------------------------------------------ notas del presentador
 const NOTAS = {
-  portada: ["Presentarse en una frase.", "Proyecto de Procesamiento Digital de Imágenes."],
-  premisa: ["Qué es: un museo de mitos colombianos que se controla con la mirada."],
-  flujo: ["Todo lo que hace el juego sale de la imagen de la cámara.", "Rostro → ojos → abiertos o cerrados → el juego reacciona."],
-  datos: ["Armamos nuestro propio conjunto de fotos.", "MediaPipe propone el contorno; nosotros lo revisamos."],
-  rcnn: ["Entrenamos dos detectores sobre esas fotos.", "Mask R-CNN además entrega la silueta (máscara)."],
-  unet: ["Para el juego usamos una U-Net que separa el rostro del fondo.", "0,93 es el índice Dice: cuánto se parece la máscara al rostro real."],
-  pipeline: ["Son las salidas reales del programa del juego.", "De la foto al recorte de los ojos, y al final la probabilidad de ojos cerrados."],
-  cnn: ["Una segunda red mira solo el recorte de los ojos."],
-  fallos: ["Casos en los que la imagen no permite decidir y cómo responde el juego."],
-  llorona: ["Ahora sí, el museo: tres esculturas del folclor colombiano."],
-  mohan: ["Habita bajo el río Magdalena."],
-  madremonte: ["Guardiana de la selva."],
+  portada: ["Presentarse en una frase.", "Proyecto de Procesamiento Digital de Imágenes: expresión humana en el arte y la cultura."],
+  problema: ["En un museo el visitante solo observa.", "Problema de PDI: convertir cuadros muy distintos de una webcam en una señal ocular confiable."],
+  objetivos: ["Cinco objetivos: localizar, clasificar, estabilizar, evaluar, integrar."],
+  flujo: ["Recorrer la arquitectura de izquierda a derecha.", "Inferencia en Python con OpenCV y ONNX Runtime; Unity solo recibe el estado por UDP."],
+  datos: ["Conjunto propio de fotos.", "MediaPipe propone el contorno; nosotros lo revisamos a mano."],
+  rcnn: ["Entrenamos dos detectores y los comparamos.", "Mask R-CNN además entrega la silueta (máscara)."],
+  unet: ["En el juego usamos una U-Net que separa el rostro del fondo.", "Dice 0,93: cuánto se superpone la máscara con el rostro real."],
+  pipeline: ["Son salidas reales del programa del juego.", "Entrada → probabilidad → máscara → caja → banda ocular → P(cerrados)."],
+  cnn: ["Una segunda red mira solo la banda de los ojos en gris, 80 × 160."],
+  filtro: ["La CNN decide cuadro a cuadro; eso solo no sirve para jugar.", "Calibración: percentil 85 con ojos abiertos y percentil 20 con ojos cerrados; los umbrales quedan entre ambos."],
+  validacion: ["Prueba con el video de un integrante, leído en tiempo real por el detector.", "Abiertos 0,20 contra cerrados 0,94: la separación da calidad «Excelente».", "Superó la prueba de dos parpadeos."],
+  fallos: ["Limitaciones y cómo responde el sistema.", "Regla central: sin rostro válido nunca se interpreta ojos cerrados."],
+  conclusiones: ["Tres conclusiones y las mejoras pendientes."],
+  museo: ["Ahora sí, el juego, en un minuto."],
+  interfaz: ["La GUI es el juego: calibración y HUD con la lectura en vivo."],
   trailer: ["Dejar correr el trailer."],
   creditos: ["Agradecer. Invitar a jugar desde el repositorio."],
 };
@@ -636,10 +707,13 @@ function tomas() {
   };
   return {
     portada:      { pos: V(-38, 1.7, 0.6), mira: V(12, 2.4, 0) },
-    premisa:      { pos: V(-27, 1.25, 2.2), mira: V(-6, 1.6, 0), deriva: V(1.6, 0, 0) },
-    llorona:      frente("llorona", -1.3, -0.25, 3.4, -1.0, -0.45),
-    mohan:        frente("mohan", -1.3, -0.1, 3.2, -1.0, -0.35),
-    madremonte:   frente("madremonte", -1.3, -0.25, 3.4, -1.0, -0.45),
+    problema:     { pos: V(-27, 1.25, 2.2), mira: V(-6, 1.6, 0), deriva: V(1.6, 0, 0) },
+    objetivos:    { pos: V(-20, 1.6, 7), mira: V(4, 1.8, -2), deriva: V(1.0, 0, 0) },
+    filtro:       frente("mohan", -0.6, 0.04, 1.4, -0.45, -0.03),
+    validacion:   { pos: V(-24, 1.4, 6), mira: V(-2, 2, -1), deriva: V(1.2, 0, 0) },
+    conclusiones: { pos: V(-27, 1.25, 2.2), mira: V(-6, 1.6, 0), deriva: V(1.6, 0, 0) },
+    museo:        { pos: V(-30, 9, 13), mira: V(0, 0.5, 0), deriva: V(2, 0, 0) },
+    interfaz:     { pos: V(-6, 2.6, 16), mira: V(-6, 6, -12) },
     flujo:        { pos: V(-4, 2.2, 13), mira: V(-4, 16, -12) },
     datos:        { pos: V(-24, 1.4, 6), mira: V(-2, 2, -1), deriva: V(1.2, 0, 0) },
     rcnn:         frente("llorona", -0.7, 0.03, 1.6, -0.5, -0.03),
@@ -679,8 +753,7 @@ function ir(i, inmediato = false) {
 
 function entrar(k) {
   if (!entrado) return;
-  if (k === "llorona") sonar("sus_llorona_01", .55);
-  if (k === "mohan") sonar("sus_mohan_01", .55);
+  if (k === "museo") sonar("sus_llorona_01", .55);
   if (k === "pipeline") iniciarPipeline();
   if (CON_SCAN.includes(k)) setTimeout(() => { if (slides[actual].dataset.k === k) $("#scan").classList.add("on"); }, 1800);
   if (k === "creditos") sonar("sfx_campana_amanecer", .6);

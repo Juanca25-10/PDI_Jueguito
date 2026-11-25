@@ -40,6 +40,7 @@ namespace CuandoNadieMira.Trailer
         static void Instalar()
         {
             if (!Activo) return;
+            UnityEditor.EditorPrefs.SetBool("cnm.simTeclado", false);     // en las tomas manda el detector real, nunca el modo sin cámara
             Directory.CreateDirectory(Carpeta);
             var go = new GameObject("DirectorTrailer");
             DontDestroyOnLoad(go);
@@ -101,10 +102,10 @@ namespace CuandoNadieMira.Trailer
             {
                 var textos = FindObjectsByType<TMP_Text>(FindObjectsSortMode.None).Where(t => t.isActiveAndEnabled).Select(t => t.text).ToList();
                 bool preparate = textos.Any(t => t.Contains("Prepárate"));
-                if (!cerro && preparate && textos.Contains("1"))
+                if (!cerro && preparate)
                 {
                     cerro = true;
-                    yield return new WaitForSecondsRealtime(0.55f);         // cierra justo cuando suena la campana
+                    yield return new WaitForSecondsRealtime(0.1f);         // cuenta de 3 s; con la latencia del detector cierra con la campana
                     Orden("cerrados");
                     Evento("calibracion", "cierra los ojos");
                 }
@@ -123,7 +124,7 @@ namespace CuandoNadieMira.Trailer
                     Evento("calibracion", "parpadea dos veces");
                 }
                 if (parpadeo && textos.Any(t => t.Contains("El museo ya conoce tu mirada"))) { Evento("calibracion", "completada"); yield break; }
-                if (textos.Any(t => t.Contains("Repetir") && t.Contains("calibr")) && cerro && !abrio) { cerro = false; }
+                if (textos.Any(t => t.Contains("Repetir") && t.Contains("calibr"))  && cerro && !parpadeo) { Orden("abiertos"); cerro = abrio = false; }
                 yield return null;
             }
         }
