@@ -25,25 +25,25 @@ Material:
     m_TexEnvs: []
     m_Ints: []
     m_Floats:
-    - _Aberracion: 0.25
-    - _Barras: 0.065
-    - _ColorResidual: 0
-    - _Contraste: 0.3
+    - _Aberracion: 0.036
+    - _Barras: 0.0578
+    - _ColorResidual: 0.101
+    - _Contraste: 0.314
     - _Difusion: 0.253
-    - _EscalaPolvo: 23.5
+    - _EscalaPolvo: 15.7
     - _FPS: 20
-    - _Gamma: 0.921
-    - _Glow: 0
-    - _Grano: 0.113
-    - _Hombro: 0.135
+    - _Gamma: 0.944
+    - _Glow: 0.05
+    - _Grano: 0.075
+    - _Hombro: 0.088
     - _Parpadeo: 0.04
     - _Polvo: 0.085
     - _RadioGlow: 1
-    - _Rayones: 0
+    - _Rayones: 0.014
     - _TamanoGrano: 1
     - _Temblor: 0.6
     - _UmbralGlow: 0.3
-    - _Vineta: 0.35
+    - _Vineta: 0.076
     m_Colors:
     - _ColorLuces: {r: 0.96999997, g: 0.96, b: 0.93, a: 1}
     - _ColorSombras: {r: 0.049999982, g: 0.049999982, b: 0.054999977, a: 1}
