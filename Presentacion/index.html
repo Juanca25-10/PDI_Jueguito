@@ -306,7 +306,8 @@ body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
   <section class="slide izq" data-k="datos" data-seg="40">
     <p class="ceja">1 · Los datos</p>
     <div class="cifra">349</div>
-    <p class="frase">fotos con <em>1047 rostros y ojos</em> marcados a mano, con ayuda de MediaPipe.</p>
+    <p class="frase">fotos propias con <em>1047 regiones anotadas</em>: el rostro y los dos ojos de cada foto.</p>
+    <p class="dato">formato COCO · ojos abiertos y cerrados · revisadas foto por foto</p>
   </section>
 
   <section class="slide izq" data-k="rcnn" data-seg="40">
@@ -483,7 +484,7 @@ const NOTAS = {
   problema: ["En un museo el visitante solo observa.", "Problema de PDI: convertir cuadros muy distintos de una webcam en una señal ocular confiable."],
   objetivos: ["Cinco objetivos: localizar, clasificar, estabilizar, evaluar, integrar."],
   flujo: ["Recorrer la arquitectura de izquierda a derecha.", "Inferencia en Python con OpenCV y ONNX Runtime; Unity solo recibe el estado por UDP."],
-  datos: ["Conjunto propio de fotos.", "MediaPipe propone el contorno; nosotros lo revisamos a mano."],
+  datos: ["Conjunto propio de fotos: 349 × 3 = 1047 regiones (rostro, ojo derecho, ojo izquierdo).", "Con esas anotaciones se entrenan todos los modelos que siguen."],
   rcnn: ["Entrenamos dos detectores y los comparamos.", "Mask R-CNN además entrega la silueta (máscara)."],
   unet: ["En el juego usamos una U-Net que separa el rostro del fondo.", "Dice 0,93: cuánto se superpone la máscara con el rostro real."],
   pipeline: ["Son salidas reales del programa del juego.", "Entrada → probabilidad → máscara → caja → banda ocular → P(cerrados)."],
