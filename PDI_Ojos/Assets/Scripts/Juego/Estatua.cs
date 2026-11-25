@@ -54,6 +54,12 @@ public class Estatua : MonoBehaviour
     [Tooltip("Pausa entre avisar el retroceso y cambiar la pose: la tapa el parpadeo de las luces.")]
     public float retrasoCambio = 0.11f;
 
+    [Header("Efecto al retroceder (opcional)")]
+    [Tooltip("ParticleSystem hijo de esta estatua (Simulation Space = World, Play On Awake apagado). Se dispara en el punto que la estatua abandona, como una estela.")]
+    public ParticleSystem efectoRetroceso;
+    [Tooltip("Alto del cuerpo (en metros) para el que diseñaste el efecto. El efecto se centra en el cuerpo real de la estatua y se escala según su alto real: súbelo si el efecto sale muy grande, bájalo si sale muy pequeño.")]
+    public float alturaReferencia = 2f;
+
     [Header("Sonido (opcional)")]
     [Tooltip("AudioSource propio de esta estatua, en un hijo suyo (por ejemplo 'Audio'). Pon Spatial Blend = 1. Se coloca donde está la estatua cada vez que suena. Si lo dejas vacío se usa un sonido 3D temporal.")]
     public AudioSource fuente;
@@ -93,6 +99,13 @@ public class Estatua : MonoBehaviour
             if (variantesPorPose != null) foreach (var v in variantesPorPose) if (v != null) escalados.Add(v.transform);
             foreach (var t in escalados) t.localScale *= escalaModelo;
         }
+        if (efectoRetroceso != null)
+            foreach (var ps in efectoRetroceso.GetComponentsInChildren<ParticleSystem>())
+            {
+                var m = ps.main;
+                m.scalingMode = ParticleSystemScalingMode.Hierarchy;   // para que el efecto escale con el tamaño de la estatua
+                m.playOnAwake = false;
+            }
         if (fuente != null)
         {
             // Si el AudioSource está en la raíz (o en un padre de Modelo/Poses), moverlo arrastraría los puntos de pose.
@@ -203,9 +216,35 @@ public class Estatua : MonoBehaviour
         cambiando = true;
         tAbierto = 0f;
         Retrocedio?.Invoke(this);                         // las luces parpadean
+        LanzarEfecto();                                   // la estela se queda en el lugar que abandona
         yield return new WaitForSeconds(retrasoCambio);   // y justo entonces cambia la pose
         PonerPose(PoseActual - 1);
         cambiando = false;
+    }
+
+    // Centra el efecto en el cuerpo real de la estatua (no en el pivote del modelo) y lo escala a su tamaño.
+    void LanzarEfecto()
+    {
+        if (efectoRetroceso == null) return;
+        Vector3 centro = Posicion + Vector3.up;
+        float alto = alturaReferencia;
+        if (CuerpoVisible(Visible, out Bounds b)) { centro = b.center; alto = b.size.y; }
+        var t = efectoRetroceso.transform;
+        t.position = centro;
+        t.localScale = Vector3.one * Mathf.Max(0.1f, alto / Mathf.Max(0.1f, alturaReferencia));
+        efectoRetroceso.Play(true);
+    }
+
+    static bool CuerpoVisible(Transform v, out Bounds b)
+    {
+        b = default;
+        bool hay = false;
+        foreach (var r in v.GetComponentsInChildren<Renderer>())
+        {
+            if (!r.enabled || r is ParticleSystemRenderer || r is TrailRenderer || r is LineRenderer) continue;
+            if (!hay) { b = r.bounds; hay = true; } else b.Encapsulate(r.bounds);
+        }
+        return hay;
     }
 
     // Dibuja la ruta de poses en la ventana Scene para colocarlas fácil.
