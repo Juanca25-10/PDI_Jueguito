@@ -1,0 +1,919 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cuando Nadie Mira</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;800&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=IM+Fell+English:ital@0;1&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Concepto: un recorrido nocturno por el museo del juego. Cada diapositiva es una parada de la cámara; el texto es mínimo y vive sobre la niebla. */
+:root {
+  /* El juego es en blanco y negro: toda la paleta es neutra */
+  --noche: #060606;        /* fondo, igual que la niebla */
+  --hueso: #e6e6e6;        /* texto principal */
+  --ceniza: #8e8e8e;       /* texto secundario */
+  --vela: #ffffff;         /* acento: blanco puro */
+  --sangre: #ffffff;       /* destello del susto */
+  --apagado: #5e5e5e;      /* estado "cerrado" */
+  --linea: rgba(255, 255, 255, .18);
+  --f-display: "Cinzel", "Trajan Pro", Georgia, serif;
+  --f-texto: "Cormorant Garamond", "Garamond", Georgia, serif;
+  --f-cita: "IM Fell English", "Cormorant Garamond", Georgia, serif;
+  --f-dato: "IBM Plex Mono", ui-monospace, "Consolas", monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+[hidden] { display: none !important; }
+body {
+  background: var(--noche); color: var(--hueso);
+  font-family: var(--f-texto); overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* Capas de película: viñeta y grano (el juego usa un filtro de película antigua) */
+.vineta { position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at 50% 55%, transparent 45%, rgba(0,0,0,.55) 80%, rgba(0,0,0,.9) 100%); }
+.grano { position: fixed; inset: -50%; pointer-events: none; opacity: .09; mix-blend-mode: overlay;
+  animation: grano 0.9s steps(6) infinite; }
+@keyframes grano { 0%{transform:translate(0,0)} 20%{transform:translate(-4%,3%)} 40%{transform:translate(3%,-5%)} 60%{transform:translate(-6%,-2%)} 80%{transform:translate(5%,4%)} 100%{transform:translate(0,0)} }
+
+/* Párpados */
+.parpado { position: fixed; left: -5%; width: 110%; height: 56%; pointer-events: none;
+  background-size: 100% 100%; background-repeat: no-repeat;
+  transition: transform .32s cubic-bezier(.6,0,.4,1); z-index: 30; }
+.parpado.sup { top: 0; background-image: url("assets/img/parpado_sup.png"); transform: translateY(-105%); }
+.parpado.inf { bottom: 0; background-image: url("assets/img/parpado_inf.png"); transform: translateY(105%); }
+body.cerrado .parpado.sup { transform: translateY(0); }
+body.cerrado .parpado.inf { transform: translateY(0); }
+.destello { position: fixed; inset: 0; background: var(--sangre); opacity: 0; pointer-events: none; z-index: 31; transition: opacity .5s; }
+.destello.on { opacity: .55; transition: none; }
+
+/* Diapositivas */
+.escenario { position: fixed; inset: 0; z-index: 10; pointer-events: none;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.slide { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center;
+  padding: 0 max(24px, 7vw); opacity: 0; visibility: hidden; transition: opacity .9s ease, visibility 0s linear .9s; }
+.slide.activa { opacity: 1; visibility: visible; transition: opacity 1.1s ease .35s, visibility 0s; }
+.slide > * { max-width: 46rem; }
+.izq { align-items: flex-start; text-align: left; }
+.centro { align-items: center; text-align: center; }
+.centro > * { margin-inline: auto; }
+.abajo { justify-content: flex-end; padding-bottom: max(64px, 10vh); }
+
+.ceja { font-family: var(--f-display); font-size: clamp(.7rem, 1.1vw, .9rem); letter-spacing: .38em; text-transform: uppercase; color: var(--vela); margin: 0 0 1.2rem; }
+h1, h2 { font-family: var(--f-display); font-weight: 600; margin: 0; letter-spacing: .04em; line-height: 1.02; text-wrap: balance;
+  text-shadow: 0 0 40px rgba(0,0,0,.9), 0 2px 2px rgba(0,0,0,.6); }
+h1 { font-size: clamp(2.6rem, 7.5vw, 7rem); }
+h2 { font-size: clamp(2.2rem, 5.6vw, 5.2rem); }
+.frase { font-family: var(--f-cita); font-size: clamp(1.15rem, 2.1vw, 1.75rem); line-height: 1.35; color: var(--hueso); margin: 1.2rem 0 0; max-width: 34rem; text-wrap: pretty; text-shadow: 0 0 24px #000; }
+.frase em { color: var(--vela); font-style: italic; }
+.dato { font-family: var(--f-dato); font-size: clamp(.72rem, 1vw, .85rem); color: var(--ceniza); letter-spacing: .04em; margin-top: 1.4rem; }
+.cifra { font-family: var(--f-display); font-weight: 800; font-size: clamp(4.5rem, 15vw, 13rem); line-height: .9; letter-spacing: -.01em;
+  color: var(--hueso); text-shadow: 0 0 60px rgba(255,255,255,.18), 0 0 30px #000; font-variant-numeric: tabular-nums; }
+.cifra small { font-size: .42em; color: var(--vela); margin-left: .08em; }
+
+img { filter: grayscale(1); }
+
+/* Logo: el mismo título del menú del juego */
+.marca { --t: clamp(3rem, 9vw, 8.4rem); display: flex; flex-direction: column; align-items: center; text-align: center; max-width: none !important; }
+.marca .titulo { position: relative; font-family: var(--f-cita); font-size: var(--t); line-height: .92; letter-spacing: -.03em; color: #f2f2f2; text-transform: uppercase;
+  text-shadow: 0 0 40px rgba(0,0,0,.95), 0 0 18px rgba(255,255,255,.12); }
+.marca .ln { display: block; white-space: nowrap; }
+.marca .o { position: relative; display: inline-block; }
+.marca .ramas { position: absolute; left: 50%; bottom: 100%; width: 1.75em; height: 1.375em; margin-left: -.83em; margin-bottom: -.2em; overflow: visible; pointer-events: none; }
+.marca .ramas path { fill: none; stroke: #cfcfcf; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px rgba(255,255,255,.35)); }
+.marca .sub { font-family: var(--f-texto); font-style: italic; font-size: calc(var(--t) * .2); color: #cccccc; margin-top: .9em; letter-spacing: .02em; text-shadow: 0 0 18px #000; }
+.marca .orn { width: calc(var(--t) * 2.6); max-width: 70vw; height: auto; margin-top: .9rem; opacity: .8; }
+.marca.chica { --t: clamp(2rem, 5vw, 4.2rem); }
+.marca.media { --t: clamp(2.4rem, 6.5vw, 5.4rem); }
+
+/* Portada */
+.pista { position: absolute; bottom: max(28px, 5vh); left: 0; right: 0; text-align: center; font-family: var(--f-dato); font-size: .75rem; letter-spacing: .2em; color: var(--ceniza); text-transform: uppercase; animation: latido 2.6s ease-in-out infinite; }
+@keyframes latido { 50% { opacity: .35; } }
+
+
+/* Flujo técnico */
+.flujo { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); margin-top: 2.6rem; width: 100%; max-width: 70rem !important; position: relative; }
+.nodo { position: relative; min-width: 0; padding: 1.1rem .8rem 1rem; text-align: center; opacity: 0; transform: translateY(14px); transition: opacity .6s, transform .6s; }
+.slide.activa .nodo { opacity: 1; transform: none; }
+.nodo img { width: 34px; height: 34px; opacity: .9; }
+.nodo .n { font-family: var(--f-display); font-size: 1.05rem; letter-spacing: .06em; margin-top: .6rem; }
+.nodo .d { font-family: var(--f-dato); font-size: .7rem; color: var(--ceniza); margin-top: .35rem; line-height: 1.45; }
+.nodo + .nodo::before { content: ""; position: absolute; left: -1.2rem; top: 2.1rem; width: 2.4rem; height: 1px; background: linear-gradient(90deg, transparent, var(--vela), transparent); }
+.nodo.pulso .n { color: var(--vela); text-shadow: 0 0 18px rgba(255,255,255,.7); }
+.nodo.pulso img { filter: drop-shadow(0 0 10px rgba(255,255,255,.9)); }
+.glifo { width: 34px; height: 34px; margin: 0 auto; display: grid; place-items: center; font-family: var(--f-dato); font-size: .8rem; color: var(--hueso); border: 1px solid var(--linea); border-radius: 50%; }
+
+/* Recuadro de detección (visualización) */
+.scan { position: fixed; z-index: 12; pointer-events: none; opacity: 0; transition: opacity .6s; }
+.scan.on { opacity: 1; }
+.scan::before, .scan::after, .scan span::before, .scan span::after { content: ""; position: absolute; width: 18px; height: 18px; border: 2px solid var(--vela); }
+.scan::before { left: 0; top: 0; border-right: 0; border-bottom: 0; }
+.scan::after { right: 0; top: 0; border-left: 0; border-bottom: 0; }
+.scan span::before { left: 0; bottom: 0; border-right: 0; border-top: 0; }
+.scan span::after { right: 0; bottom: 0; border-left: 0; border-top: 0; }
+.scan em { position: absolute; left: 0; top: -1.6rem; font-family: var(--f-dato); font-style: normal; font-size: .72rem; color: var(--noche); background: var(--vela); padding: .1rem .45rem; white-space: nowrap; }
+.scan .barrido { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent); animation: barrido 2.2s ease-in-out infinite; }
+@keyframes barrido { 0%,100% { top: 4%; } 50% { top: 94%; } }
+
+/* Robustez */
+.fallos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 2.4rem; background: var(--linea); max-width: 62rem !important; width: 100%; }
+.fallo { text-align: left; background: rgba(6,6,6,.78); padding: 1.3rem 1.4rem; display: grid; grid-template-columns: 34px 1fr; gap: .9rem; align-items: start; backdrop-filter: blur(3px); }
+.fallo img { width: 30px; opacity: .85; }
+.fallo .t { font-family: var(--f-display); font-size: 1.05rem; letter-spacing: .04em; }
+.fallo .d { font-family: var(--f-texto); font-size: 1.08rem; color: var(--ceniza); margin-top: .25rem; line-height: 1.3; }
+.fallo .d b { font-family: var(--f-dato); font-weight: 500; font-size: .82rem; color: var(--vela); }
+
+/* Subtítulo de muestra */
+.subtitulo { margin-top: 2rem; background: rgba(0,0,0,.6); padding: .7rem 1.2rem; font-family: var(--f-texto); font-size: clamp(1.05rem, 1.8vw, 1.45rem); color: #eee6d6; min-height: 1.5em; }
+
+/* Trailer */
+.marco { width: min(1100px, 92vw); aspect-ratio: 16 / 9; max-width: 100%; background: #000; position: relative; box-shadow: 0 0 0 1px var(--linea), 0 40px 120px rgba(0,0,0,.9); pointer-events: auto; }
+.marco video { width: 100%; height: 100%; display: block; }
+.marco .vacio { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 1rem; }
+.marco .vacio img { width: 64px; margin: 0 auto; opacity: .8; animation: latido 2.6s infinite; }
+.marco .vacio p { font-family: var(--f-display); letter-spacing: .3em; text-transform: uppercase; color: var(--ceniza); margin: 0; font-size: .85rem; }
+
+
+/* Créditos */
+.equipo { display: flex; flex-wrap: wrap; justify-content: center; gap: .4rem 2.4rem; margin-top: 2rem; font-family: var(--f-display); font-size: clamp(1rem, 1.8vw, 1.4rem); letter-spacing: .08em; }
+.jugar { pointer-events: auto; display: inline-flex; align-items: center; gap: .8rem; margin-top: 2.6rem; padding: .95rem 2.2rem; font-family: var(--f-display); font-size: 1rem; letter-spacing: .28em; text-transform: uppercase; color: var(--noche); background: var(--vela); text-decoration: none; transition: background .25s, transform .25s; }
+.jugar:hover { background: #cfcfcf; transform: translateY(-2px); }
+.jugar:focus-visible, button:focus-visible { outline: 2px solid var(--hueso); outline-offset: 4px; }
+.jugar img { width: 18px; filter: invert(1); }
+
+/* Navegación y presentador */
+.puntos { position: fixed; z-index: 20; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom, 0px)); display: flex; gap: 6px; }
+.puntos button { width: 7px; height: 7px; padding: 0; border: 0; border-radius: 50%; background: var(--linea); cursor: pointer; transition: background .3s, transform .3s; }
+.puntos button.on { background: var(--vela); transform: scale(1.5); }
+.ctrl { position: fixed; z-index: 20; top: max(14px, env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); display: flex; gap: 8px; }
+.ctrl button { width: 36px; height: 36px; border: 1px solid var(--linea); background: rgba(6,6,6,.5); color: var(--hueso); cursor: pointer; display: grid; place-items: center; font-family: var(--f-dato); font-size: .8rem; }
+.ctrl button img { width: 18px; opacity: .85; }
+.presentador { position: fixed; z-index: 25; left: max(16px, env(safe-area-inset-left, 0px)); bottom: max(34px, env(safe-area-inset-bottom, 0px)); width: min(380px, calc(100vw - 32px)); background: rgba(6,6,6,.88); border: 1px solid var(--linea); padding: .9rem 1rem; font-family: var(--f-dato); font-size: .75rem; color: var(--ceniza); line-height: 1.5; }
+.presentador .reloj { display: flex; justify-content: space-between; color: var(--hueso); font-size: .95rem; font-variant-numeric: tabular-nums; }
+.presentador .reloj .tarde { color: #fff; text-decoration: underline; }
+.presentador ul { margin: .6rem 0 0; padding-left: 1.1rem; font-family: var(--f-texto); font-size: .98rem; color: var(--hueso); }
+
+/* Entrada / carga */
+.entrada { position: fixed; inset: 0; z-index: 40; background: var(--noche); display: grid; place-content: center; text-align: center; gap: 1.4rem; transition: opacity 1.2s; }
+.entrada.fuera { opacity: 0; pointer-events: none; }
+.entrada .t { font-family: var(--f-display); letter-spacing: .32em; text-transform: uppercase; font-size: .85rem; color: var(--ceniza); }
+.barra { width: min(320px, 70vw); height: 1px; background: var(--linea); margin: 0 auto; }
+.barra i { display: block; height: 100%; width: 0; background: var(--vela); transition: width .3s; }
+.entrada button { font-family: var(--f-display); letter-spacing: .3em; text-transform: uppercase; font-size: .95rem; padding: .9rem 2.4rem; background: transparent; color: var(--hueso); border: 1px solid var(--vela); cursor: pointer; opacity: 0; transition: opacity .6s, background .3s; }
+.entrada button.listo { opacity: 1; }
+.entrada button:hover { background: rgba(255,255,255,.1); }
+.entrada .aviso { font-family: var(--f-dato); font-size: .72rem; color: var(--ceniza); }
+
+/* Tabla comparativa */
+.tabla { border-collapse: collapse; margin-top: 2rem; font-family: var(--f-dato); font-size: clamp(.78rem, 1.15vw, .98rem); width: 100%; max-width: 40rem !important; background: rgba(6,6,6,.72); backdrop-filter: blur(3px); }
+.tabla th, .tabla td { padding: .62rem 1rem; border-bottom: 1px solid var(--linea); text-align: right; font-variant-numeric: tabular-nums; }
+.tabla th:first-child, .tabla td:first-child { text-align: left; color: var(--ceniza); font-family: var(--f-texto); font-size: 1.12em; }
+.tabla thead th { font-family: var(--f-display); font-weight: 600; letter-spacing: .08em; color: var(--hueso); font-size: .95em; }
+.golpe { display: flex; align-items: baseline; gap: 1.2rem; margin-top: 1.8rem; flex-wrap: wrap; }
+.golpe .cifra { font-size: clamp(3rem, 8vw, 6.4rem); }
+.golpe .frase { margin: 0; max-width: 22rem; }
+
+/* Dos cifras enfrentadas */
+.duelo { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; margin-top: 2rem; background: var(--linea); width: 100%; max-width: 46rem !important; }
+.duelo > div { background: rgba(6,6,6,.78); padding: 1.4rem 1.5rem; backdrop-filter: blur(3px); }
+.duelo .cifra { font-size: clamp(2.8rem, 7vw, 5.6rem); }
+.duelo .tenue .cifra { color: var(--apagado); text-shadow: none; }
+.duelo p { margin: .5rem 0 0; font-family: var(--f-texto); font-size: clamp(1rem, 1.5vw, 1.2rem); color: var(--ceniza); line-height: 1.3; }
+.duelo p b { color: var(--hueso); font-weight: 600; }
+
+/* Pipeline con imágenes reales */
+.slide[data-k="pipeline"] > * { max-width: 76rem; }
+.cinta { display: grid; grid-template-columns: repeat(4, minmax(0, .75fr)) minmax(0, 1.5fr) minmax(0, 1.1fr); gap: .9rem; margin-top: 1.6rem; width: 100%; align-items: start; }
+.etapa { min-width: 0; opacity: .14; transition: opacity .5s, transform .5s; transform: translateY(8px); }
+.etapa.on { opacity: 1; transform: none; }
+.etapa .img { position: relative; aspect-ratio: 3 / 4; background: #000; overflow: hidden; box-shadow: 0 0 0 1px var(--linea); }
+.etapa.banda .img { aspect-ratio: 2 / 1; }
+.etapa .img img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.etapa.banda .img img { image-rendering: pixelated; }
+.etapa.actual .img { box-shadow: 0 0 0 1px #fff, 0 0 30px rgba(255,255,255,.18); }
+.etapa .n { font-family: var(--f-display); font-size: clamp(.8rem, 1.1vw, .98rem); letter-spacing: .06em; margin-top: .6rem; }
+.etapa .n span { font-family: var(--f-dato); color: var(--ceniza); margin-right: .4rem; font-size: .8em; }
+.etapa .d { font-family: var(--f-dato); font-size: clamp(.6rem, .78vw, .7rem); color: var(--ceniza); margin-top: .25rem; line-height: 1.45; }
+.veredicto { min-width: 0; padding: .2rem 0 .2rem 1rem; border-left: 1px solid var(--linea); opacity: .14; transition: opacity .5s; }
+.veredicto.on { opacity: 1; }
+.veredicto .cifra { font-size: clamp(2.6rem, 5.6vw, 5rem); }
+.veredicto .lbl { font-family: var(--f-dato); font-size: .72rem; color: var(--ceniza); letter-spacing: .06em; }
+.veredicto .clase { font-family: var(--f-display); font-size: clamp(1.1rem, 1.8vw, 1.5rem); letter-spacing: .12em; text-transform: uppercase; margin-top: .3rem; }
+.veredicto .medidor { height: 3px; background: var(--linea); margin-top: .9rem; position: relative; }
+.veredicto .medidor i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: #fff; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+.veredicto .medidor b { position: absolute; left: 50%; top: -5px; bottom: -5px; width: 1px; background: var(--ceniza); }
+.fotos { display: flex; gap: .5rem; margin-top: 1.3rem; pointer-events: auto; flex-wrap: wrap; align-items: center; }
+.fotos button { font-family: var(--f-dato); font-size: .72rem; letter-spacing: .08em; padding: .45rem .8rem; background: rgba(6,6,6,.6); color: var(--ceniza); border: 1px solid var(--linea); cursor: pointer; }
+.fotos button.on { color: var(--noche); background: #fff; border-color: #fff; }
+.fotos .meta { font-family: var(--f-dato); font-size: .72rem; color: var(--ceniza); margin-left: .6rem; }
+.creditofoto { font-family: var(--f-dato); font-size: .6rem; color: #6a6a6a; margin-top: .9rem; }
+.slide[data-k="datos"]::before, .slide[data-k="rcnn"]::before, .slide[data-k="unet"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(6,6,6,.85) 0%, rgba(6,6,6,.55) 55%, rgba(6,6,6,.15) 100%); }
+.slide[data-k="pipeline"]::before { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(6,6,6,.74); }
+
+body.oculto-cursor, body.oculto-cursor * { cursor: none !important; }
+
+@media (max-width: 720px) {
+  .slide { padding: 0 8px; }
+  .fallos { grid-template-columns: 1fr 1fr; }
+  .duelo { grid-template-columns: 1fr; }
+  .cinta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .veredicto { grid-column: span 2; border-left: 0; padding-left: 0; }
+  .etapa.banda { grid-column: span 2; }
+  .flujo { grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: .6rem; }
+  .nodo + .nodo::before { display: none; }
+  .izq { align-items: center; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .grano, .pista, .scan .barrido { animation: none; }
+  .slide, .slide.activa { transition: opacity .2s; }
+}
+</style>
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="vineta"></div>
+<div class="grano" id="grano"></div>
+
+<div class="scan" id="scan"><span></span><i class="barrido"></i><em id="scanTxt">rostro</em></div>
+
+<main class="escenario" id="escenario">
+  <section class="slide centro" data-k="portada" data-seg="30">
+    <p class="ceja" style="margin-bottom:3.4rem">Procesamiento Digital de Imágenes</p>
+    <div class="marca" data-marca>
+      <div class="titulo"><span class="ln">CUAND<span class="o">O</span></span><span class="ln">NADIE MIRA</span></div>
+      <div class="sub">Museo interactivo de mitos y leyendas de Colombia</div>
+      <img class="orn" src="assets/img/ornamento.png" alt="">
+    </div>
+    <p class="pista">Clic o → para avanzar</p>
+  </section>
+
+  <section class="slide izq" data-k="premisa" data-seg="35">
+    <h2>Un museo<br>que te observa.</h2>
+    <p class="frase">Un juego de terror sobre mitos colombianos que se juega <em>con la mirada</em>: la cámara web lee tus ojos.</p>
+  </section>
+
+  <section class="slide centro" data-k="flujo" data-seg="40">
+    <p class="ceja">Lo que hicimos en procesamiento de imágenes</p>
+    <h2>De la cámara al juego</h2>
+    <div class="flujo" id="flujo">
+      <div class="nodo"><img src="assets/img/icon_Camera.png" alt=""><div class="n">Cámara</div><div class="d">la imagen en vivo</div></div>
+      <div class="nodo"><img src="assets/img/icon_Head.png" alt=""><div class="n">Rostro</div><div class="d">lo separamos<br>del fondo</div></div>
+      <div class="nodo"><img src="assets/img/icon_Eye.png" alt=""><div class="n">Ojos</div><div class="d">recortamos<br>esa franja</div></div>
+      <div class="nodo"><img src="assets/img/icon_EyeClosed.png" alt=""><div class="n">Decisión</div><div class="d">¿abiertos<br>o cerrados?</div></div>
+      <div class="nodo"><img src="assets/img/icon_Signal.png" alt=""><div class="n">Envío</div><div class="d">un mensaje<br>por cuadro</div></div>
+      <div class="nodo"><img src="assets/img/icon_Gamepad.png" alt=""><div class="n">Juego</div><div class="d">el museo<br>reacciona</div></div>
+    </div>
+  </section>
+
+  <section class="slide izq" data-k="datos" data-seg="40">
+    <p class="ceja">1 · Las imágenes</p>
+    <div class="cifra">349</div>
+    <p class="frase">fotos con <em>1047 rostros y ojos</em> marcados a mano, con ayuda de MediaPipe.</p>
+  </section>
+
+  <section class="slide izq" data-k="rcnn" data-seg="45">
+    <p class="ceja">2 · Encontrar rostro y ojos</p>
+    <h2>Dos detectores</h2>
+    <div class="duelo">
+      <div><div class="cifra">91,7<small>%</small></div><p><b>Faster R-CNN</b><br>encierra cada rostro y cada ojo en una caja.</p></div>
+      <div><div class="cifra">92,3<small>%</small></div><p><b>Mask R-CNN</b><br>además dibuja su silueta exacta.</p></div>
+    </div>
+    <p class="dato">rostros y ojos encontrados en las fotos de prueba</p>
+  </section>
+
+  <section class="slide izq" data-k="unet" data-seg="40">
+    <p class="ceja">3 · Separar el rostro del fondo</p>
+    <div class="cifra">0,93</div>
+    <p class="frase">de coincidencia entre la máscara de la <em>U-Net</em> y el rostro real.</p>
+    <p class="dato">80 fotos propias · 9 personas</p>
+  </section>
+
+  <section class="slide centro" data-k="pipeline" data-seg="75">
+    <p class="ceja">4 · Paso a paso, con fotos reales</p>
+    <div class="cinta" id="cinta">
+      <div class="etapa"><div class="img"><img data-e="1_entrada.jpg" alt="Imagen de entrada"></div><div class="n"><span>01</span>Foto</div><div class="d">lo que ve la cámara</div></div>
+      <div class="etapa"><div class="img"><img data-e="2_prob.jpg" alt="Mapa de probabilidad de la U-Net"></div><div class="n"><span>02</span>¿Dónde hay rostro?</div><div class="d">la U-Net lo estima píxel a píxel</div></div>
+      <div class="etapa"><div class="img"><img data-e="3_mascara.png" alt="Máscara binaria"></div><div class="n"><span>03</span>Máscara</div><div class="d">rostro en blanco, fondo en negro</div></div>
+      <div class="etapa"><div class="img"><img data-e="4_caja.jpg" alt="Caja del rostro y banda ocular"></div><div class="n"><span>04</span>Ubicar los ojos</div><div class="d">caja del rostro y franja de los ojos</div></div>
+      <div class="etapa banda"><div class="img"><img data-e="5_banda.png" alt="Banda ocular 80 por 160"></div><div class="n"><span>05</span>Recorte de los ojos</div><div class="d">en gris, lo que lee la red</div></div>
+      <div class="veredicto" id="veredicto"><div class="lbl">06 · Probabilidad de ojos cerrados</div><div class="cifra" id="vP">0,00</div><div class="clase" id="vClase">—</div><div class="medidor"><i id="vBarra"></i><b></b></div></div>
+    </div>
+    <div class="fotos" id="fotos">
+      <button data-f="abierto">Foto A · abiertos</button><button data-f="cerrado">Foto B · cerrados</button><button data-f="cerrado2">Foto C · cerrados</button>
+      <span class="meta" id="fMeta"></span>
+    </div>
+    <p class="creditofoto">Fotos CC0 (Wikimedia Commons): Sandy Huffaker · Toa Heftiba · Priscilla Du Preez</p>
+  </section>
+
+  <section class="slide izq" data-k="cnn" data-seg="35">
+    <p class="ceja">5 · Leer los ojos</p>
+    <div class="cifra">97,4<small>%</small></div>
+    <p class="frase">de aciertos de la red que decide si los ojos están <em>abiertos o cerrados</em>.</p>
+  </section>
+
+  <section class="slide centro" data-k="fallos" data-seg="35">
+    <p class="ceja">6 · Cuando la imagen no es clara</p>
+    <h2>El juego espera</h2>
+    <div class="fallos">
+      <div class="fallo"><img src="assets/img/icon_Head.png" alt=""><div><div class="t">Muy lejos</div><div class="d">Te pide acercarte.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Person.png" alt=""><div><div class="t">Dos personas</div><div class="d">No decide por nadie.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Camera.png" alt=""><div><div class="t">Rostro cortado</div><div class="d">Te pide centrarte.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Eye.png" alt=""><div><div class="t">Un parpadeo</div><div class="d">No cuenta como cerrar los ojos.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Warning.png" alt=""><div><div class="t">Manchas</div><div class="d">Se ignoran.</div></div></div>
+      <div class="fallo"><img src="assets/img/icon_Signal.png" alt=""><div><div class="t">Sin cámara</div><div class="d">El juego se pausa.</div></div></div>
+    </div>
+  </section>
+
+  <section class="slide izq abajo" data-k="llorona" data-seg="30">
+    <p class="ceja">Escultura I</p>
+    <h2>La Llorona</h2>
+    <p class="frase">Vaga por los cauces nocturnos lamentando la pérdida de sus hijos.</p>
+  </section>
+
+  <section class="slide izq abajo" data-k="mohan" data-seg="30">
+    <p class="ceja">Escultura II</p>
+    <h2>El Mohán</h2>
+    <p class="frase">Habita en cuevas bajo las aguas del río Magdalena.</p>
+  </section>
+
+  <section class="slide izq abajo" data-k="madremonte" data-seg="30">
+    <p class="ceja">Escultura III</p>
+    <h2>La Madremonte</h2>
+    <p class="frase">Guardiana de las selvas y de los nacimientos de agua.</p>
+  </section>
+
+  <section class="slide centro" data-k="trailer" data-seg="90">
+    <div class="marco" id="marco">
+      <video id="video" playsinline controls preload="none" hidden></video>
+      <div class="vacio" id="vacio"><img src="assets/img/icon_Eye.png" alt=""><p>Trailer</p></div>
+    </div>
+  </section>
+
+  <section class="slide centro" data-k="creditos" data-seg="30">
+    <div class="marca chica" data-marca>
+      <div class="titulo"><span class="ln">CUAND<span class="o">O</span></span><span class="ln">NADIE MIRA</span></div>
+      <div class="sub">Museo interactivo de mitos y leyendas de Colombia</div>
+      <img class="orn" src="assets/img/ornamento.png" alt="">
+    </div>
+    <div class="equipo"><span>Alejandro Pantoja</span><span>Esteban Cifuentes</span><span>Juan Camilo López</span></div>
+    <p class="dato">Procesamiento Digital de Imágenes · Universidad Autónoma de Occidente · 2026</p>
+    <!-- Cuando el build esté listo, cambia este enlace por el del Release (…/releases/latest) -->
+    <a class="jugar" id="jugar" href="https://github.com/Juanca25-10/PDI_Jueguito" target="_blank" rel="noopener"><img src="assets/img/icon_Gamepad.png" alt="">Jugar</a>
+  </section>
+</main>
+
+<div class="parpado sup"></div>
+<div class="parpado inf"></div>
+<div class="destello" id="destello"></div>
+
+<nav class="puntos" id="puntos" aria-label="Diapositivas"></nav>
+<div class="ctrl">
+  <button id="bSonido" title="Sonido (M)" aria-label="Activar o silenciar sonido">♪</button>
+  <button id="bPantalla" title="Pantalla completa (F)" aria-label="Pantalla completa">⛶</button>
+</div>
+<aside class="presentador" id="presentador" hidden>
+  <div class="reloj"><span id="rNum">1 / 14</span><span id="rTiempo">00:00</span><span id="rMeta">meta 00:35</span></div>
+  <ul id="rNotas"></ul>
+  <div style="margin-top:.5rem">P oculta · ← → navega · F pantalla completa · M sonido</div>
+</aside>
+
+<div class="entrada" id="entrada">
+  <div class="marca media" data-marca>
+      <div class="titulo"><span class="ln">CUAND<span class="o">O</span></span><span class="ln">NADIE MIRA</span></div>
+      <div class="sub">Museo interactivo de mitos y leyendas de Colombia</div>
+      <img class="orn" src="assets/img/ornamento.png" alt="">
+    </div>
+  <div class="t" id="cargaTxt">Preparando la experiencia</div>
+  <div class="barra"><i id="cargaBarra"></i></div>
+  <button id="bEntrar">Entrar</button>
+  <div class="aviso">Con sonido · P muestra las notas del presentador</div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
+
+const MOV_REDUCIDO = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const $ = (s) => document.querySelector(s);
+
+// ------------------------------------------------------------------ notas del presentador
+const NOTAS = {
+  portada: ["Presentarse en una frase.", "Proyecto de Procesamiento Digital de Imágenes."],
+  premisa: ["Qué es: un museo de mitos colombianos que se controla con la mirada."],
+  flujo: ["Todo lo que hace el juego sale de la imagen de la cámara.", "Rostro → ojos → abiertos o cerrados → el juego reacciona."],
+  datos: ["Armamos nuestro propio conjunto de fotos.", "MediaPipe propone el contorno; nosotros lo revisamos."],
+  rcnn: ["Entrenamos dos detectores sobre esas fotos.", "Mask R-CNN además entrega la silueta (máscara)."],
+  unet: ["Para el juego usamos una U-Net que separa el rostro del fondo.", "0,93 es el índice Dice: cuánto se parece la máscara al rostro real."],
+  pipeline: ["Son las salidas reales del programa del juego.", "De la foto al recorte de los ojos, y al final la probabilidad de ojos cerrados."],
+  cnn: ["Una segunda red mira solo el recorte de los ojos."],
+  fallos: ["Casos en los que la imagen no permite decidir y cómo responde el juego."],
+  llorona: ["Ahora sí, el museo: tres esculturas del folclor colombiano."],
+  mohan: ["Habita bajo el río Magdalena."],
+  madremonte: ["Guardiana de la selva."],
+  trailer: ["Dejar correr el trailer."],
+  creditos: ["Agradecer. Invitar a jugar desde el repositorio."],
+};
+
+// ------------------------------------------------------------------ diapositivas
+const slides = [...document.querySelectorAll(".slide")];
+const N = slides.length;
+const metas = []; { let acc = 0; for (const s of slides) { acc += +s.dataset.seg; metas.push(acc); } }
+const puntos = $("#puntos");
+slides.forEach((s, i) => {
+  const b = document.createElement("button");
+  b.setAttribute("aria-label", "Ir a la diapositiva " + (i + 1));
+  b.addEventListener("click", (e) => { e.stopPropagation(); ir(i); });
+  puntos.appendChild(b);
+});
+
+// ------------------------------------------------------------------ audio
+const AUD = {};
+for (const n of ["amb_museo_noche.ogg", "sfx_piedra_moverse.mp3", "sfx_luz_parpadeo.mp3", "sfx_golpe_terror.mp3", "sfx_campana_amanecer.mp3", "sfx_respiracion_cerca.mp3", "sus_llorona_01.mp3", "sus_mohan_01.mp3"]) {
+  const a = new Audio("assets/audio/" + n); a.preload = "auto"; AUD[n.split(".")[0]] = a;
+}
+AUD.amb_museo_noche.loop = true; AUD.amb_museo_noche.volume = .45;
+let mudo = false;
+try { mudo = localStorage.getItem("cnm_mudo") === "1"; } catch {}
+function sonar(k, vol = .8) {
+  if (mudo || !AUD[k]) return;
+  const a = AUD[k]; a.volume = vol; a.currentTime = 0; a.play().catch(() => {});
+}
+function ambiente(on) {
+  const a = AUD.amb_museo_noche;
+  if (on && !mudo) a.play().catch(() => {}); else a.pause();
+}
+function ponerMudo(v) {
+  mudo = v; $("#bSonido").style.opacity = v ? .4 : 1;
+  try { localStorage.setItem("cnm_mudo", v ? "1" : "0"); } catch {}
+  if (v) Object.values(AUD).forEach(a => a.pause()); else if (entrado && slides[actual].dataset.k !== "trailer") ambiente(true);
+}
+$("#bSonido").addEventListener("click", (e) => { e.stopPropagation(); ponerMudo(!mudo); });
+$("#bPantalla").addEventListener("click", (e) => { e.stopPropagation(); pantallaCompleta(); });
+function pantallaCompleta() {
+  if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+  else document.documentElement.requestFullscreen?.().catch(() => {});
+}
+
+// ------------------------------------------------------------------ grano
+{
+  const c = document.createElement("canvas"); c.width = c.height = 160;
+  const g = c.getContext("2d"), d = g.createImageData(160, 160);
+  for (let i = 0; i < d.data.length; i += 4) { const v = Math.random() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0);
+  $("#grano").style.backgroundImage = `url(${c.toDataURL()})`;
+}
+
+// ------------------------------------------------------------------ three.js
+const canvas = $("#gl");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const NOCHE = new THREE.Color(0x07080b), ALBA = new THREE.Color(0x2b3040);
+const scene = new THREE.Scene();
+scene.background = NOCHE.clone();
+scene.fog = new THREE.FogExp2(NOCHE.clone(), 0.03);
+const camera = new THREE.PerspectiveCamera(42, 1, 0.05, 220);
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloom = new UnrealBloomPass(new THREE.Vector2(1, 1), 0.55, 0.5, 0.82);
+composer.addPass(bloom);
+// Blanco y negro, como el filtro del juego: luminancia Rec. 709 con un poco más de contraste
+composer.addPass(new ShaderPass({
+  uniforms: { tDiffuse: { value: null }, contraste: { value: 1.12 } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  fragmentShader: "uniform sampler2D tDiffuse; uniform float contraste; varying vec2 vUv; void main(){ vec4 c = texture2D(tDiffuse, vUv); float l = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722)); l = max(0.0, (l - 0.18) * contraste + 0.18); gl_FragColor = vec4(vec3(l), c.a); }",
+}));
+composer.addPass(new OutputPass());
+
+function redimensionar() {
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false); composer.setSize(w, h); bloom.setSize(w, h);
+  camera.aspect = w / h; camera.fov = w / h < 0.8 ? 58 : 42; camera.updateProjectionMatrix();
+}
+addEventListener("resize", () => { redimensionar(); if (TOMAS) { TOMAS = tomas(); const t = TOMAS[slides[actual].dataset.k]; cam.haciaP.copy(t.pos); cam.haciaM.copy(t.mira); } });
+redimensionar();
+
+// Luces: luna desde el techo abierto, velas y focos sobre cada escultura
+const hemi = new THREE.HemisphereLight(0x7684ad, 0x241c14, 1.4); scene.add(hemi);
+const luna = new THREE.DirectionalLight(0x9aaee0, 0.9); luna.position.set(-14, 40, 10); scene.add(luna, luna.target);
+luna.castShadow = true; luna.shadow.mapSize.set(2048, 2048); luna.shadow.bias = -0.0005;
+Object.assign(luna.shadow.camera, { left: -45, right: 45, top: 30, bottom: -30, near: 1, far: 90 });
+const alba = new THREE.DirectionalLight(0xffb27a, 0); alba.position.set(60, 12, 0); scene.add(alba);
+
+const velas = [];
+function vela(x, y, z, int = 7) {
+  const l = new THREE.PointLight(0xff9447, int, 14, 2); l.position.set(x, y, z); l.userData.base = int; l.userData.f = Math.random() * 100;
+  scene.add(l); velas.push(l);
+  const llama = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffc27a }));
+  llama.position.copy(l.position); scene.add(llama);
+  return l;
+}
+
+// Partículas de polvo
+const polvo = (() => {
+  const n = 1800, pos = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { pos[i * 3] = THREE.MathUtils.randFloat(-40, 40); pos[i * 3 + 1] = THREE.MathUtils.randFloat(0, 9); pos[i * 3 + 2] = THREE.MathUtils.randFloat(-14, 14); }
+  const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+  const c = document.createElement("canvas"); c.width = c.height = 64; const g = c.getContext("2d");
+  const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, "rgba(255,230,200,1)"); gr.addColorStop(1, "rgba(255,230,200,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const mat = new THREE.PointsMaterial({ size: 0.06, map: new THREE.CanvasTexture(c), transparent: true, opacity: .55, depthWrite: false, blending: THREE.AdditiveBlending });
+  const p = new THREE.Points(geo, mat); scene.add(p); return p;
+})();
+
+// ------------------------------------------------------------------ carga
+const manager = new THREE.LoadingManager();
+manager.onProgress = (_, a, b) => { $("#cargaBarra").style.width = Math.round(a / b * 100) + "%"; };
+const draco = new DRACOLoader(manager); draco.setDecoderPath("assets/draco/"); draco.setDecoderConfig({ type: "js" });
+const loader = new GLTFLoader(manager); loader.setDRACOLoader(draco);
+// Carga el .glb; si el servidor no lo entrega (p. ej. un host que no sirve .glb), usa la copia en .json (base64).
+async function cargar(f) {
+  const ruta = "assets/modelos/" + f;
+  manager.itemStart(ruta);
+  try {
+    let buf;
+    const r = await fetch(ruta);
+    if (r.ok) buf = await r.arrayBuffer();
+    else {
+      const j = await (await fetch(ruta.replace(/\.glb$/, ".json"))).json();
+      buf = Uint8Array.from(atob(j.glb), (c) => c.charCodeAt(0)).buffer;
+    }
+    const g = await loader.parseAsync(buf, "assets/modelos/");
+    return g.scene;
+  } finally { manager.itemEnd(ruta); }
+}
+
+const ESCALA = 1.25, PEANA = 0.32;
+const SITIO = { llorona: new THREE.Vector3(-14, 0, -2), mohan: new THREE.Vector3(-2, 0, 2.5), madremonte: new THREE.Vector3(10, 0, -2) };
+const estatuas = {};   // nombre -> { grupo, caja, cara }
+
+function prepararModelo(obj) {
+  obj.traverse((m) => {
+    if (!m.isMesh) return;
+    m.castShadow = true; m.receiveShadow = true;
+    if (m.material) { m.material.roughness = 0.82; m.material.metalness = 0; m.material.envMapIntensity = 0; }
+  });
+  obj.scale.setScalar(ESCALA);
+  return obj;
+}
+
+const marmol = new THREE.MeshStandardMaterial({ color: 0x1b1a19, roughness: .45, metalness: 0 });
+function peana(pos) {
+  const p = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.82, PEANA, 40), marmol);
+  p.position.set(pos.x, PEANA / 2, pos.z); p.receiveShadow = true; p.castShadow = true; scene.add(p);
+}
+function foco(pos, color = 0xffd2a0, int = 140) {
+  const s = new THREE.SpotLight(color, int, 18, 0.42, 0.65, 2);
+  s.position.set(pos.x + 0.6, 7.5, pos.z + 3.2); s.target.position.set(pos.x, 1.1, pos.z);
+  s.castShadow = true; s.shadow.mapSize.set(1024, 1024); s.shadow.bias = -0.0004; s.shadow.normalBias = 0.02;
+  scene.add(s, s.target); return s;
+}
+
+async function cargarTodo() {
+  const museo = await cargar("museo.glb");
+  museo.traverse((m) => {
+    if (!m.isMesh) return;
+    m.receiveShadow = true; m.castShadow = true;
+    const n = (m.material?.name || "");
+    let mat;
+    if (m.name.startsWith("sol")) mat = new THREE.MeshStandardMaterial({ color: 0x5a5146, roughness: .42, metalness: 0 });
+    else if (n.includes("vidrio")) { mat = new THREE.MeshStandardMaterial({ color: 0x5d6b78, roughness: .1, transparent: true, opacity: .14, depthWrite: false }); m.castShadow = false; }
+    else if (n.includes("deco")) mat = new THREE.MeshStandardMaterial({ color: 0x8a7350, roughness: .6, metalness: .1 });
+    else if (n.includes("metal")) mat = new THREE.MeshStandardMaterial({ color: 0x3a332b, roughness: .6, metalness: .2 });
+    else if (n.includes("exterior")) mat = new THREE.MeshStandardMaterial({ color: 0x24211e, roughness: .9 });
+    else mat = new THREE.MeshStandardMaterial({ color: 0x9a8f7e, roughness: .92 });
+    mat.side = THREE.DoubleSide;
+    m.material = mat;
+  });
+  scene.add(museo);
+
+  const [ll, mo, mm] = await Promise.all([cargar("llorona_p0.glb"), cargar("mohan_p0.glb"), cargar("madremonte_p0.glb")]);
+  for (const [k, obj] of [["llorona", ll], ["mohan", mo], ["madremonte", mm]]) {
+    prepararModelo(obj);
+    const s = SITIO[k];
+    obj.position.set(s.x, PEANA, s.z);
+    scene.add(obj); peana(s);
+    foco(s, k === "madremonte" ? 0xcfe0b0 : k === "mohan" ? 0xffc890 : 0xd8e2ff);
+    obj.updateMatrixWorld(true);
+    const caja = new THREE.Box3().setFromObject(obj);
+    const alto = caja.max.y - caja.min.y;
+    const bajaCara = { llorona: 0.1, mohan: 0.13, madremonte: 0.19 }[k];   // la Madremonte lleva cuernos sobre la cabeza
+    const corrX = { llorona: -0.09, mohan: 0, madremonte: 0 }[k];
+    estatuas[k] = { obj, caja, cara: new THREE.Vector3(s.x + corrX, caja.max.y - alto * bajaCara, s.z + 0.12), alto };
+  }
+
+  // velas a lo largo del recorrido
+  [[-20, 1.1, 3.5], [-8, 1.1, -4.5], [4, 1.1, 5.5], [16, 1.1, -4], [21, 1.1, 3], [27, 1.1, 2.5], [-30, 1.1, -3]].forEach(v => vela(...v));
+}
+
+// ------------------------------------------------------------------ cámaras por diapositiva
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+function tomas() {
+  const e = estatuas;
+  const vertical = innerWidth / innerHeight < 0.8;   // en pantallas verticales la escultura va al centro
+  const frente = (k, dx, dy, dz, tx, ty) => {
+    const s = SITIO[k], c = e[k].cara;
+    if (vertical) { dx *= 0.15; tx = 0; dz *= 1.35; }
+    return { pos: V(s.x + dx, c.y + dy, s.z + dz), mira: V(s.x + tx, c.y + ty, s.z) };
+  };
+  return {
+    portada:      { pos: V(-38, 1.7, 0.6), mira: V(12, 2.4, 0) },
+    premisa:      { pos: V(-27, 1.25, 2.2), mira: V(-6, 1.6, 0), deriva: V(1.6, 0, 0) },
+    llorona:      frente("llorona", -1.3, -0.25, 3.4, -1.0, -0.45),
+    mohan:        frente("mohan", -1.3, -0.1, 3.2, -1.0, -0.35),
+    madremonte:   frente("madremonte", -1.3, -0.25, 3.4, -1.0, -0.45),
+    flujo:        { pos: V(-4, 2.2, 13), mira: V(-4, 16, -12) },
+    datos:        { pos: V(-24, 1.4, 6), mira: V(-2, 2, -1), deriva: V(1.2, 0, 0) },
+    rcnn:         frente("llorona", -0.7, 0.03, 1.6, -0.5, -0.03),
+    unet:         frente("madremonte", -0.55, 0.05, 1.25, -0.42, -0.04),
+    pipeline:     { pos: V(-6, 2.6, 16), mira: V(-6, 6, -12) },
+    cnn:          frente("llorona", -0.5, 0.02, 1.15, -0.38, -0.02),
+    fallos:       { pos: V(-30, 9, 13), mira: V(0, 0.5, 0) },
+    trailer:      { pos: V(-6, 3, 18), mira: V(-6, 3, -20) },
+    creditos:     { pos: V(-2, 2.3, 13.5), mira: V(-2, 1.4, 0) },
+  };
+}
+let TOMAS = null;
+
+// ------------------------------------------------------------------ navegación
+let actual = 0, entrado = false, inicio = 0;
+const cam = { t0: 0, desdeP: V(-38, 1.7, 0.6), desdeM: V(12, 2.4, 0), haciaP: V(-38, 1.7, 0.6), haciaM: V(12, 2.4, 0), t: 1, deriva: V(0, 0, 0), tEnSlide: 0 };
+const mira = new THREE.Vector3();
+
+function ir(i, inmediato = false) {
+  i = Math.max(0, Math.min(N - 1, i));
+  const previo = actual;
+  salir(slides[previo].dataset.k);
+  actual = i;
+  slides.forEach((s, j) => s.classList.toggle("activa", j === i));
+  [...puntos.children].forEach((b, j) => b.classList.toggle("on", j === i));
+  const k = slides[i].dataset.k;
+  if (TOMAS) {
+    cam.desdeP.copy(camera.position); cam.desdeM.copy(mira);
+    cam.haciaP.copy(TOMAS[k].pos); cam.haciaM.copy(TOMAS[k].mira);
+    cam.deriva.copy(TOMAS[k].deriva || V(0, 0, 0));
+    cam.t = inmediato || MOV_REDUCIDO ? 1 : 0; cam.t0 = performance.now(); cam.tEnSlide = 0;
+  }
+  if (location.hash !== "#s" + (i + 1)) history.replaceState(null, "", "#s" + (i + 1));
+  entrar(k);
+  pintarPresentador();
+}
+
+function entrar(k) {
+  if (!entrado) return;
+  if (k === "llorona") sonar("sus_llorona_01", .55);
+  if (k === "mohan") sonar("sus_mohan_01", .55);
+  if (k === "pipeline") iniciarPipeline();
+  if (CON_SCAN.includes(k)) setTimeout(() => { if (slides[actual].dataset.k === k) $("#scan").classList.add("on"); }, 1800);
+  if (k === "creditos") sonar("sfx_campana_amanecer", .6);
+  if (k === "trailer") abrirTrailer();
+}
+function salir(k) {
+  if (k === "pipeline") clearTimeout(pipeT);
+  if (CON_SCAN.includes(k)) $("#scan").classList.remove("on");
+  if (k === "trailer") { const v = $("#video"); v.pause(); ambiente(true); }
+}
+
+addEventListener("keydown", (e) => {
+  if (!entrado) { if (e.key === "Enter" || e.key === " ") $("#bEntrar").click(); return; }
+  const k = e.key;
+  if (["ArrowRight", "PageDown", " ", "Enter"].includes(k)) { e.preventDefault(); ir(actual + 1); }
+  else if (["ArrowLeft", "PageUp", "Backspace"].includes(k)) { e.preventDefault(); ir(actual - 1); }
+  else if (k === "Home") ir(0);
+  else if (k === "End") ir(N - 1);
+  else if (k === "f" || k === "F") pantallaCompleta();
+  else if (k === "m" || k === "M") ponerMudo(!mudo);
+  else if (k === "p" || k === "P") { const p = $("#presentador"); p.hidden = !p.hidden; pintarPresentador(); }
+});
+addEventListener("click", (e) => {
+  if (!entrado || performance.now() - inicio < 900 || e.target.closest("a,button,video,.marco,.ctrl,.presentador")) return;
+  ir(e.clientX < innerWidth * 0.25 ? actual - 1 : actual + 1);
+});
+{ let x0 = null;
+  addEventListener("touchstart", (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+  addEventListener("touchend", (e) => { if (x0 === null || !entrado) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) ir(actual + (dx < 0 ? 1 : -1)); x0 = null; }); }
+addEventListener("hashchange", () => { const m = /^#s(\d+)$/.exec(location.hash); if (m && +m[1] - 1 !== actual) ir(+m[1] - 1); });
+
+// cursor oculto mientras se presenta
+{ let t; addEventListener("mousemove", () => { document.body.classList.remove("oculto-cursor"); clearTimeout(t); t = setTimeout(() => entrado && document.body.classList.add("oculto-cursor"), 2500); }); }
+
+// ------------------------------------------------------------------ presentador
+const fmt = (s) => String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+function pintarPresentador() {
+  if ($("#presentador").hidden) return;
+  $("#rNum").textContent = (actual + 1) + " / " + N;
+  $("#rMeta").textContent = "meta " + fmt(metas[actual]);
+  $("#rNotas").innerHTML = (NOTAS[slides[actual].dataset.k] || []).map(t => `<li>${t}</li>`).join("");
+}
+setInterval(() => {
+  if (!entrado || $("#presentador").hidden) return;
+  const s = (performance.now() - inicio) / 1000;
+  const r = $("#rTiempo"); r.textContent = fmt(s); r.className = s > metas[actual] + 5 ? "tarde" : "";
+}, 500);
+
+let parpadeoHasta = 0;
+function parpadeoLuces() { parpadeoHasta = performance.now() + 420; }
+
+// ------------------------------------------------------------------ pipeline con imágenes reales (salidas del pipeline del juego)
+const RES = {
+  abierto:  { p: 0.2834, area: 17.25, score: 0.957 },
+  cerrado:  { p: 0.8073, area: 5.9,   score: 0.938 },
+  cerrado2: { p: 0.9761, area: 9.97,  score: 0.931 },
+};
+const FOTOS = Object.keys(RES);
+let pipeT = null, foto = 0;
+const coma = (x, d = 2) => x.toFixed(d).replace(".", ",");
+function ponerFoto(i) {
+  foto = (i + FOTOS.length) % FOTOS.length;
+  const f = FOTOS[foto], r = RES[f];
+  document.querySelectorAll("#cinta img[data-e]").forEach(im => im.src = `assets/pdi/${f}_${im.dataset.e}`);
+  [...$("#fotos").querySelectorAll("button")].forEach((b, j) => b.classList.toggle("on", j === foto));
+  $("#fMeta").textContent = `el rostro ocupa el ${coma(r.area, 1)} % de la foto`;
+}
+function iniciarPipeline(i = foto) {
+  clearTimeout(pipeT); ponerFoto(i);
+  const etapas = [...$("#cinta").querySelectorAll(".etapa")], ver = $("#veredicto");
+  etapas.forEach(e => e.classList.remove("on", "actual")); ver.classList.remove("on");
+  $("#vBarra").style.width = "0"; $("#vP").textContent = "0,00"; $("#vClase").textContent = "—";
+  let paso = 0;
+  const tick = () => {
+    if (slides[actual].dataset.k !== "pipeline") return;
+    if (paso < etapas.length) {
+      etapas.forEach((e, j) => { e.classList.toggle("on", j <= paso); e.classList.toggle("actual", j === paso); });
+      paso++; pipeT = setTimeout(tick, MOV_REDUCIDO ? 400 : 1500);
+    } else {
+      etapas.forEach(e => e.classList.remove("actual"));
+      const p = RES[FOTOS[foto]].p;
+      ver.classList.add("on"); $("#vBarra").style.width = (p * 100) + "%";
+      $("#vClase").textContent = p >= 0.5 ? "cerrados" : "abiertos";
+      const t0 = performance.now();
+      const cuenta = () => { const u = Math.min(1, (performance.now() - t0) / 900); $("#vP").textContent = coma(p * (1 - Math.pow(1 - u, 3))); if (u < 1) requestAnimationFrame(cuenta); };
+      cuenta();
+      if (p >= 0.5) sonar("sfx_piedra_moverse", .5);
+      pipeT = setTimeout(() => iniciarPipeline(foto + 1), 5200);
+    }
+  };
+  pipeT = setTimeout(tick, 700);
+}
+$("#fotos").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  e.stopPropagation(); iniciarPipeline(FOTOS.indexOf(b.dataset.f));
+});
+ponerFoto(0);
+
+// ------------------------------------------------------------------ logo: ramas secas que nacen de la O (mismo algoritmo que el menú del juego)
+function azar(semilla) { let a = semilla >>> 0; return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function ramas(o) {
+  const rnd = azar(7), NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("class", "ramas"); svg.setAttribute("viewBox", "-105 -165 210 165"); svg.setAttribute("aria-hidden", "true");
+  const crecer = (x, y, ang, largo, prof, ancho) => {
+    if (!prof) return;
+    const r = ang * Math.PI / 180, dx = Math.sin(r), dy = -Math.cos(r), sx = -dy, sy = dx;
+    const ex = x + dx * largo, ey = y + dy * largo;
+    let d = "";
+    for (let i = 0; i < 4; i++) {
+      const t = i / 3, w = (rnd() - 0.5) * largo * 0.18 * Math.sin(t * Math.PI);
+      d += (i ? " L" : "M") + (x + (ex - x) * t + sx * w).toFixed(1) + " " + (y + (ey - y) * t + sy * w).toFixed(1);
+    }
+    const path = document.createElementNS(NS, "path");
+    path.setAttribute("d", d); path.setAttribute("stroke-width", (ancho * 0.85).toFixed(2));
+    svg.appendChild(path);
+    const hijos = prof > 2 ? 2 : (rnd() > 0.4 ? 2 : 1);
+    for (let k = 0; k < hijos; k++) {
+      const abre = (k === 0 ? -1 : 1) * (22 + rnd() * 22), en = 0.55 + rnd() * 0.45;
+      crecer(x + (ex - x) * en, y + (ey - y) * en, ang + abre, largo * (0.55 + rnd() * 0.2), prof - 1, ancho * 0.6);
+    }
+  };
+  crecer(6, 0, 18, 62, 4, 3.2);
+  crecer(6, 0, -25, 40, 3, 2.4);
+  o.appendChild(svg);
+}
+document.querySelectorAll("[data-marca] .o").forEach(ramas);
+
+// ------------------------------------------------------------------ trailer
+const TRAILER = "assets/trailer.mp4";
+let trailerExiste = null;
+async function abrirTrailer() {
+  if (trailerExiste === null) {
+    try { const r = await fetch(TRAILER, { method: "HEAD" }); trailerExiste = r.ok; } catch { trailerExiste = false; }
+  }
+  if (!trailerExiste || slides[actual].dataset.k !== "trailer") return;
+  const v = $("#video"); if (!v.src) v.src = TRAILER;
+  v.hidden = false; $("#vacio").hidden = true;
+  ambiente(false); v.muted = mudo; v.play().catch(() => {});
+}
+
+// ------------------------------------------------------------------ recuadro de detección proyectado
+const tmp = new THREE.Vector3();
+const CON_SCAN = ["rcnn", "unet", "cnn"];
+const SCAN = {
+  rcnn: { est: "llorona", ancho: 0.22, alto: 0.3, dy: 0, txt: "Mask R-CNN · rostro + ojos" },
+  unet: { est: "madremonte", ancho: 0.26, alto: 0.32, dy: 0, txt: "U-Net · máscara del rostro" },
+  cnn:  { est: "llorona", ancho: 0.2, alto: 0.07, dy: 0.012, txt: "ojos" },
+};
+function actualizarScan() {
+  const c = SCAN[slides[actual].dataset.k];
+  if (!c) return;
+  const est = estatuas[c.est];
+  if (!est) return;
+  const centro = est.cara.clone(); centro.y += est.alto * c.dy;
+  const a = tmp.copy(centro).add(V(-c.ancho / 2, c.alto / 2, 0)).project(camera);
+  const ax = (a.x + 1) / 2 * innerWidth, ay = (1 - a.y) / 2 * innerHeight;
+  const b = tmp.copy(centro).add(V(c.ancho / 2, -c.alto / 2, 0)).project(camera);
+  const bx = (b.x + 1) / 2 * innerWidth, by = (1 - b.y) / 2 * innerHeight;
+  const s = $("#scan").style;
+  s.left = ax + "px"; s.top = ay + "px"; s.width = Math.max(20, bx - ax) + "px"; s.height = Math.max(14, by - ay) + "px";
+  $("#scanTxt").textContent = c.txt;
+}
+
+// ------------------------------------------------------------------ bucle
+const reloj = new THREE.Clock();
+const ease = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const nieblaObjetivo = new THREE.Color();
+function bucle() {
+  const dt = Math.min(reloj.getDelta(), 0.05), t = reloj.elapsedTime;
+  if (TOMAS) {
+    if (cam.t < 1) cam.t = Math.min(1, (performance.now() - cam.t0) / 2600); cam.tEnSlide += dt;
+    const e = ease(cam.t);
+    camera.position.lerpVectors(cam.desdeP, cam.haciaP, e);
+    mira.lerpVectors(cam.desdeM, cam.haciaM, e);
+    if (!MOV_REDUCIDO) {
+      const d = Math.min(cam.tEnSlide / 40, 1);
+      camera.position.addScaledVector(cam.deriva, d);
+      camera.position.x += Math.sin(t * .23) * .06; camera.position.y += Math.sin(t * .31) * .04;
+    }
+    camera.lookAt(mira);
+  }
+  // amanecer en la penúltima diapositiva
+  const k = slides[actual].dataset.k;
+  const amanece = k === "creditos" ? 1 : 0;
+  alba.intensity += ((amanece ? 1.5 : 0) - alba.intensity) * dt * 0.6;
+  luna.intensity += ((amanece ? 1.6 : 0.9) - luna.intensity) * dt * 0.6;
+  nieblaObjetivo.copy(amanece ? ALBA : NOCHE);
+  scene.fog.color.lerp(nieblaObjetivo, dt * 0.5); scene.background.copy(scene.fog.color);
+  scene.fog.density += ((amanece ? 0.02 : k === "fallos" ? 0.02 : 0.03) - scene.fog.density) * dt;
+  // velas
+  const apagadas = performance.now() < parpadeoHasta;
+  for (const l of velas) l.intensity = apagadas ? (Math.random() < .5 ? 0 : l.userData.base * .3) : l.userData.base * (0.82 + 0.18 * Math.sin(t * 9 + l.userData.f) * Math.sin(t * 5.3 + l.userData.f * 2));
+  // polvo
+  polvo.rotation.y = Math.sin(t * .02) * .05; polvo.position.y = Math.sin(t * .1) * .2;
+  // flujo: pulso que recorre los nodos
+  if (k === "flujo") { const nodos = $("#flujo").children, idx = Math.floor(t * 1.6) % (nodos.length + 2); [...nodos].forEach((n, j) => n.classList.toggle("pulso", j === idx)); }
+  actualizarScan();
+  composer.render();
+  requestAnimationFrame(bucle);
+}
+
+// ------------------------------------------------------------------ arranque
+const m0 = /^#s(\d+)$/.exec(location.hash);
+const inicial = m0 ? Math.max(0, Math.min(N - 1, +m0[1] - 1)) : 0;
+slides[inicial].classList.add("activa");
+[...puntos.children][inicial]?.classList.add("on");
+actual = inicial;
+ponerMudo(mudo);
+requestAnimationFrame(bucle);
+
+cargarTodo().then(() => {
+  TOMAS = tomas();
+  cam.haciaP.copy(TOMAS[slides[actual].dataset.k].pos); cam.haciaM.copy(TOMAS[slides[actual].dataset.k].mira);
+  cam.desdeP.copy(cam.haciaP); cam.desdeM.copy(cam.haciaM); cam.t = 1;
+  $("#cargaTxt").textContent = "Listo"; $("#cargaBarra").style.width = "100%";
+  $("#bEntrar").classList.add("listo");
+}).catch((err) => {
+  console.error(err);
+  $("#cargaTxt").textContent = "No se pudieron cargar los modelos. Abre la página desde un servidor (no como archivo).";
+});
+
+$("#bEntrar").addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!TOMAS || entrado) return;
+  entrado = true; inicio = performance.now();
+  $("#entrada").classList.add("fuera");
+  ambiente(true);
+  // los ojos se abren al entrar
+  document.body.classList.add("cerrado");
+  setTimeout(() => document.body.classList.remove("cerrado"), 500);
+  setTimeout(() => document.body.classList.add("cerrado"), 900);
+  setTimeout(() => document.body.classList.remove("cerrado"), 1150);
+  ir(actual, true);
+});
+</script>

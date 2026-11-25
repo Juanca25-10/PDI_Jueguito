@@ -16,6 +16,8 @@ namespace CuandoNadieMira.Juego
     ///                                          y, si sigues con los ojos cerrados, la Curadora avisa: "Detrás de ti".
     ///   - Retrocede porque la miras          → se lamenta o se burla ("¿Dónde están...?", "Te estoy viendo").
     ///   - Curadora: "Ellas no duermen" al inicio del turno, "Ya casi amanece... o no" cerca del final.
+    ///   - La Madremonte no tiene voz: en su lugar suena el monte (mm_despierta, mm_tienta, mm_acecho, mm_retrocede),
+    ///     y su tormenta la maneja TormentaMadremonte.
     /// Todo sale de Audio/Resources (ver Voz); si un archivo falta, simplemente no suena.
     /// </summary>
     public class AudioMuseo : MonoBehaviour
@@ -237,6 +239,9 @@ namespace CuandoNadieMira.Juego
                 return new Lineas { despierta = "sus_llorona_01", tienta = "sus_llorona_02", acecho = "sus_llorona_03", retrocede = "sus_llorona_04" };
             if (n.Contains("moh"))
                 return new Lineas { despierta = "sus_mohan_01", tienta = null, acecho = "sus_mohan_03", retrocede = "sus_mohan_02" };
+            // La Madremonte no habla: es el monte el que suena (crujidos, hojas, una respiración enorme), con reverberación
+            if (TormentaMadremonte.EsMadremonte(e))
+                return new Lineas { despierta = "mm_despierta", tienta = "mm_tienta", acecho = "mm_acecho", retrocede = "mm_retrocede" };
             return null;
         }
 

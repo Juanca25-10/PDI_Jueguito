@@ -116,7 +116,7 @@ namespace CuandoNadieMira.Juego
                 if (hud.Phase == GameManager.Fase.Victoria) trend.text = "Amanece";
                 else if (hud.Phase == GameManager.Fase.Derrota) trend.text = "El turno terminó";
                 else if (!hud.HasFace) trend.text = "En pausa: no te vemos";
-                else if (rate > 0.01f) trend.text = "La noche avanza";
+                else if (rate > 0.01f) trend.text = TormentaMadremonte.Nivel > 0.3f ? "La tormenta retrasa el amanecer" : "La noche avanza";
                 else if (rate < -0.01f) trend.text = "El amanecer se aleja";
                 else if (hud.ClosedRaw) trend.text = "Mantén los ojos cerrados...";
                 else trend.text = "La noche espera";

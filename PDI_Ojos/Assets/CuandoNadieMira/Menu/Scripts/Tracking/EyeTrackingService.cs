@@ -301,14 +301,17 @@ namespace CuandoNadieMira.Menu
         /// </summary>
         static string ResolveSource(string testVideo)
         {
-            if (!string.IsNullOrEmpty(testVideo) && File.Exists(testVideo)) return testVideo;
+            if (Valid(testVideo)) return testVideo;
             string env = Environment.GetEnvironmentVariable("CNM_VIDEO_PRUEBA");
-            if (!string.IsNullOrEmpty(env) && File.Exists(env)) return env;
+            if (Valid(env)) return env;
             var args = Environment.GetCommandLineArgs();
             for (int i = 0; i < args.Length - 1; i++)
-                if (args[i] == "-cnmVideo" && File.Exists(args[i + 1])) return args[i + 1];
+                if (args[i] == "-cnmVideo" && Valid(args[i + 1])) return args[i + 1];
             return CalibrationStore.HasCameraChoice ? CalibrationStore.CameraIndex.ToString() : null;
         }
+
+        // Un archivo de video que exista, o la dirección de un flujo en vivo (por ejemplo tcp://127.0.0.1:23000)
+        static bool Valid(string source) => !string.IsNullOrEmpty(source) && (source.Contains("://") || File.Exists(source));
 
         void Remember(string line)
         {

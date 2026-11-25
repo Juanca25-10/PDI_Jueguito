@@ -6,8 +6,9 @@ namespace CuandoNadieMira.Juego
 {
     /// <summary>
     /// Antes del turno, cerca de una estatua (radio de InfoEstatua), la tecla de interactuar hace que tu personaje
-    /// lea la placa en voz alta (Voces/placa_llorona, placa_mohan...). Otra vez la tecla, alejarse o empezar el turno la cortan.
-    /// Se añade sola a cada estatua con InfoEstatua; si no existe el audio de la placa, no hace nada.
+    /// lea la placa en voz alta (Voces/placa_llorona, placa_mohan, placa_madremonte). Otra vez la tecla, alejarse o empezar el turno la cortan.
+    /// Se añade sola a cada estatua con InfoEstatua. Si todavía no existe el audio de una placa pero sí su texto,
+    /// la placa se lee solo con subtítulos (a ritmo de lectura); en cuanto se agregue el audio, se usa.
     /// </summary>
     public class PlacaEstatua : MonoBehaviour
     {
@@ -18,9 +19,11 @@ namespace CuandoNadieMira.Juego
         InfoEstatua info;
         Transform jugador;
         string clip;
+        bool conAudio;
+        float finLectura;
 
         public string Nombre => estatua != null ? estatua.nombre : "";
-        public bool TieneAudio => clip != null;
+        public bool TieneAudio => conAudio;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Instalar()
@@ -46,15 +49,33 @@ namespace CuandoNadieMira.Juego
                 if (info.canvasInfo != null) info.canvasInfo.SetActive(false);
                 info.enabled = false;
             }
-            string n = Nombre.ToLowerInvariant();
-            string nombreClip = n.Contains("llorona") ? "placa_llorona" : n.Contains("moh") ? "placa_mohan" : null;
-            clip = Voz.Existe(nombreClip) ? nombreClip : null;
+            clip = ClipDe(Nombre);
+            conAudio = Voz.Existe(clip);
+            if (!conAudio && !SubtitulosPlaca.TieneTexto(clip)) clip = null;    // sin audio ni texto: no hay placa
+        }
+
+        static string ClipDe(string nombre)
+        {
+            string n = (nombre ?? "").ToLowerInvariant().Replace(" ", "");
+            if (n.Contains("llorona")) return "placa_llorona";
+            if (n.Contains("moh")) return "placa_mohan";
+            if (n.Contains("madremonte")) return "placa_madremonte";
+            return null;
         }
 
         void OnDisable()
         {
             if (Cercana == this) Cercana = null;
-            if (Leyendo == this) { Leyendo = null; Voz.Callar(); SubtitulosPlaca.Ocultar(); }
+            if (Leyendo == this) Parar();
+        }
+
+        bool Sonando => conAudio ? Voz.Hablando : Time.time < finLectura;
+
+        void Parar()
+        {
+            if (conAudio && Voz.Hablando) Voz.Callar();
+            SubtitulosPlaca.Ocultar();
+            Leyendo = null;
         }
 
         void Update()
@@ -76,20 +97,18 @@ namespace CuandoNadieMira.Juego
             else if (Cercana == this) Cercana = null;
 
             // Termina sola, o se corta al alejarse o al empezar el turno
-            if (Leyendo == this && (!Voz.Hablando || !explorando || d > info.radio * 1.6f))
-            {
-                if (Voz.Hablando) Voz.Callar();
-                SubtitulosPlaca.Ocultar();
-                Leyendo = null;
-            }
+            if (Leyendo == this && (!Sonando || !explorando || d > info.radio * 1.6f)) Parar();
 
             if (Cercana == this && HudUtil.Down(gm.teclaInteractuar))
             {
-                if (Leyendo == this) { Voz.Callar(); SubtitulosPlaca.Ocultar(); Leyendo = null; }
+                if (Leyendo == this) Parar();
                 else
                 {
+                    if (Leyendo != null) Leyendo.Parar();
                     Voz.Efecto("sfx_pagina_placa", estatua.Posicion, 0.8f, 8f);
-                    SubtitulosPlaca.Mostrar(clip, Voz.Decir(clip));
+                    float dur = conAudio ? Voz.Decir(clip) : SubtitulosPlaca.DuracionLectura(clip);
+                    finLectura = Time.time + dur + (conAudio ? 0f : 0.6f);
+                    SubtitulosPlaca.Mostrar(clip, dur);
                     Leyendo = this;
                 }
             }

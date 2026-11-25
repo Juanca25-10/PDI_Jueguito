@@ -32,7 +32,7 @@ public class LanzadorPython : MonoBehaviour
 
         // Fuente de imagen: un video de prueba (para probar sin cámara) o la cámara elegida en Calibración
         string video = VideoPrueba();
-        UsandoVideoPrueba = video != null;
+        UsandoVideoPrueba = video != null && File.Exists(video);      // un flujo en vivo (tcp://, udp://...) cuenta como cámara
         string fuente = video != null ? $" --camara \"{video}\""
                       : PlayerPrefs.HasKey("cnm.camara") ? $" --camara {PlayerPrefs.GetInt("cnm.camara")}" : "";
 
@@ -58,7 +58,7 @@ public class LanzadorPython : MonoBehaviour
     // El video de prueba se acaba y el detector se cierra: se vuelve a abrir para que el video quede en bucle
     void Update()
     {
-        if (UsandoVideoPrueba && proceso != null && proceso.HasExited && proceso.ExitCode == 0)
+        if (VideoPrueba() != null && proceso != null && proceso.HasExited && proceso.ExitCode == 0)
         {
             proceso.Dispose();
             Abrir();
@@ -68,12 +68,15 @@ public class LanzadorPython : MonoBehaviour
     static string VideoPrueba()
     {
         string env = System.Environment.GetEnvironmentVariable("CNM_VIDEO_PRUEBA");
-        if (!string.IsNullOrEmpty(env) && File.Exists(env)) return env;
+        if (Valida(env)) return env;
         var a = System.Environment.GetCommandLineArgs();
         for (int i = 0; i < a.Length - 1; i++)
-            if (a[i] == "-cnmVideo" && File.Exists(a[i + 1])) return a[i + 1];
+            if (a[i] == "-cnmVideo" && Valida(a[i + 1])) return a[i + 1];
         return null;
     }
+
+    // Un archivo de video que exista, o la dirección de un flujo en vivo (por ejemplo tcp://127.0.0.1:23000)
+    static bool Valida(string fuente) => !string.IsNullOrEmpty(fuente) && (fuente.Contains("://") || File.Exists(fuente));
 
     void Cerrar()
     {

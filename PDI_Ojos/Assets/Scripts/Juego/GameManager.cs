@@ -168,7 +168,8 @@ public class GameManager : MonoBehaviour
         if (cerrado)
         {
             tAbierto = 0f;
-            progreso += 100f / segCerradosParaLlenar * dt;
+            // La tormenta de la Madremonte (si está cerca) hace que la noche avance más lento
+            progreso += 100f / segCerradosParaLlenar * dt * CuandoNadieMira.Juego.TormentaMadremonte.RitmoAmanecer;
 
             foreach (var e in Estatua.Todas.ToArray())       // copia: si una estatua llega al final, Perder() cambia la fase
             {
